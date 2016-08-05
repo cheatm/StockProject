@@ -8,7 +8,8 @@ import os
 
 DBName='YahooData.db'
 dirPath='D:/StockData'
-fullDBPath=dirPath+'/'+DBName
+# fullDBPath=dirPath+'/'+DBName
+fullDBPath=DBName
 
 now=time.time()
 today=time.localtime(now)
