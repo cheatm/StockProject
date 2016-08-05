@@ -203,13 +203,6 @@ class StockChart(QtGui.QMainWindow):
                 qp.drawText(c,y+size+2,name)
                 c=c+size*len(name)
 
-    #     for i in self.chartColor.keys():
-    #         print(i)
-    #         qp.setPen(self.chartColor[i])
-    #
-    #         qp.setFont(font)
-    #         qp.drawText(0,20*c,i)
-    #         c+=1
 
 
     def setdefaultChartColor(self):
