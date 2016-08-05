@@ -64,7 +64,7 @@ class StockChart(QtGui.QMainWindow):
 
         # Chart area size
         self.areaHeight=self.height()-20
-        self.areaWeight=self.weight()-40
+        self.areaWidth=self.width()-40
 
         self.xCounts=(int)(self.width()*self.alphaX)
         self.command={
@@ -342,10 +342,10 @@ class StockChart(QtGui.QMainWindow):
 
             self.Points[k]={'x':[],'y':[]}
             for i in range(0,len(v[0])):
-                x=(int)((v[0][i]-self.XR[1])/self.xmodify)
-                y=(int)((v[1][i]-self.YR[num][1])/self.ymodify[num])
+                x=(v[0][i]-self.XR[1])/self.xmodify
+                y=(v[1][i]-self.YR[num][1])/self.ymodify[num]
 
-                points.append(QtCore.QPoint(x,y))
+                points.append(QtCore.QPointF(x,y))
                 self.Points[k]['x'].append(x)
                 self.Points[k]['y'].append(y)
 
