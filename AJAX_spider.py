@@ -1,7 +1,18 @@
 import requests,re
 import pandas,json
+import  time
 
-def test():
+def nfpFromWallstreet():
+    url='https://api-markets.wallstreetcn.com//v1/calendar_item_values.json?id=402361'
+    page=requests.get(url)
+    data=json.loads(page.text)
+    # pattern1='''<div class="finance-calendar-container finance-data-container">(.*?)</div>'''
+
+    # nfp=re.findall(pattern1,page.text,re.S)
+
+    return (data['results'][0])
+
+def nfpFromInvesting():
     url='http://www.investing.com/economic-calendar/nonfarm-payrolls-227'
 
     page=requests.get(url)
@@ -13,7 +24,39 @@ def test():
     nfp=re.findall(pattern2,tbody[0],re.S)
 
     nfp=pandas.DataFrame(nfp,columns=['Date','Actual','Forecast','Previous'])
-    print(nfp)
+    return (nfp)
+
+def nfp_compare():
+    def catchNumber(s):
+        out=0
+        for n in s:
+            if n.isdigit():
+                out=out*10+(int)(n)
+
+        return out
+
+    consequence={}
+
+    investing=nfpFromInvesting()
+    wallstreet=nfpFromWallstreet()
+
+    if wallstreet['actual'] is not '':
+        wsout=catchNumber(wallstreet['actual'])-catchNumber(wallstreet['forecast'])
+        # print('WallStreet : %s' % wsout)
+        consequence['WallStreet']=wsout
+    # else:
+        # print('WallStreet : No Actual Data')
+
+    # print(investing)
+    if 'nbsp' not in investing.get_value(0,'Actual'):
+        investingOut=catchNumber(investing.get_value(0,'Actual'))-catchNumber(investing.get_value(0,'Forecast'))
+        # print("Investing : %s" % investingOut)
+        consequence['Investing']=investingOut
+    # else:
+        # print('Investing : No Actual Data')
+
+    return consequence
+
 
 def postTest():
     url='http://www.investing.com/economic-calendar/more-history'
@@ -48,4 +91,25 @@ def scrpyTest():
     pass
 
 if __name__ == '__main__':
-    test()
+    # nfpFromInvesting()
+    # print(nfpFromWallstreet())
+    con=nfp_compare()
+    consequence=[]
+
+    while(len(consequence)<2):
+        if len(consequence)==0:
+            print("No actual data at %s" % time.strftime('%H:%M:%S',time.localtime()))
+
+        # if len(consequence)==1:
+        #     print(consequence[0])
+
+        consequence=[]
+        time.sleep(10)
+        con=nfp_compare()
+        for k in con.keys():
+            out="%s : %s at %s" % (k,con[k],time.strftime('%H:%M:%S',time.localtime()))
+            consequence.append(out)
+            print(out)
+
+
+    # print(consequence)

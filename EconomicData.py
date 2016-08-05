@@ -127,6 +127,12 @@ def getYahooData():
 
     return out.T
 
+def nfpCatch():
+    url=[
+
+    ]
+
+
 
 if __name__ == '__main__':
     # print(getNonFarmPayroll())
