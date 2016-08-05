@@ -86,8 +86,8 @@ def readYahooDataFromSql(*market,conn=None):
     for m in market:
         data=pandas.read_sql('''select * FROM %s''' % m , conn)
         print(data)
-        UnKnown=conn.execute('''SELECT * FROM %s WHERE  "index" == "%s" ''' % (m,'2016/08/02')).fetchall()
-        print(len(UnKnown))
+        # UnKnown=conn.execute('''SELECT * FROM %s WHERE  "index" == "%s" ''' % (m,'2016/08/02')).fetchall()
+        # print(len(UnKnown))
     if close:
         conn.close()
 
@@ -108,13 +108,13 @@ if __name__ == '__main__':
     # test()
     createDataBase()
 
-    saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
+    # saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
     #saveYahooData(NASDAQ=yesterdaystr)
     # saveYahooData(HK=todaystr)
 
     # changeYahooData()
 
-    readYahooDataFromSql('HK')
+    readYahooDataFromSql('HK','NASDAQ')
 
 
 
