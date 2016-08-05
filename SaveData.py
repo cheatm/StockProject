@@ -17,7 +17,7 @@ today=time.localtime(now)
 todaystr=time.strftime('%Y/%m/%d',today)
 yesterday=time.localtime(now-86400)
 yesterdaystr=time.strftime('%Y/%m/%d',yesterday)
-
+# test
 
 
 def dataBaseTest():
