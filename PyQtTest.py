@@ -6,17 +6,37 @@ from PyQt4 import QtGui,QtCore
 import HKStock,indicator
 
 class StockChart(QtGui.QMainWindow):
+
     xRay=[]
+
+    # basicGraph to confirm the X axis
     MainGraph=[]
+
     YR={}
+
+    # numbers to adjust Y axis of each graph
     ymodify={}
+
+    # data to be shown in the graph
     ShownGraph=[]
+
     GHights=[]
+
+    # all data to be drawn
     Graph=[]
+
     alphaX=0.5
+
+    # points data to be shown in the graph
     Points={}
+
+    # lines to be drawn
     Line={}
+
+    # candles to be drawn
     Candle={}
+
+    # default color
     colors=[
         QtGui.QColor('cyan'),
         QtGui.QColor('white'),
@@ -27,6 +47,8 @@ class StockChart(QtGui.QMainWindow):
         QtGui.QColor('magenta'),
         QtGui.QColor('yellow')
     ]
+
+    # color for each line or candle or ....
     chartColor={}
 
 
@@ -127,7 +149,7 @@ class StockChart(QtGui.QMainWindow):
         qp=QtGui.QPainter()
         qp.begin(self)
         qp.save()
-        self.drawLabel(event,qp)
+
         self.xmodify=(R[0]-R[1])/self.width()
         for f in range(0,len(self.Graph)):
             self.drawGraph(event,qp,f,height=self.GHights[f])
@@ -139,10 +161,14 @@ class StockChart(QtGui.QMainWindow):
 
         qp.restore()
         qp.save()
+
+
+
         startY=0
         for n in range(0,num):
             startY=startY+self.GHights[n]
         self.drawBackGround(event,qp,QtCore.QRect(0,startY,self.width(),height))
+        self.drawLabel(event,qp,num,y=startY)
         qp.setPen(QtGui.QColor(255,255,255))
         qp.drawLine(QtCore.QPoint(0,startY),QtCore.QPoint(self.width(),startY))
 
@@ -159,16 +185,31 @@ class StockChart(QtGui.QMainWindow):
 
         pass
 
-    def drawLabel(self,event,qp):
-        c=1
-        font=QtGui.QFont('label',18)
-        for i in self.chartColor.keys():
-            print(i)
-            qp.setPen(self.chartColor[i])
 
-            qp.setFont(font)
-            qp.drawText(0,20*c,i)
-            c+=1
+
+    def drawLabel(self,event,qp,num=0,size=12,y=0):
+        c=2
+        font=QtGui.QFont('label',size)
+        font.setWeight(63)
+
+        for ct in self.ShownGraph[num].values():
+            for name in ct.keys():
+                print('Graph:%s startY:%s' % (num,y))
+                print('%s:%s' % (name,self.chartColor[name]))
+
+                qp.setPen(self.chartColor[name])
+                qp.setFont(font)
+
+                qp.drawText(c,y+size+2,name)
+                c=c+size*len(name)
+
+    #     for i in self.chartColor.keys():
+    #         print(i)
+    #         qp.setPen(self.chartColor[i])
+    #
+    #         qp.setFont(font)
+    #         qp.drawText(0,20*c,i)
+    #         c+=1
 
 
     def setdefaultChartColor(self):
@@ -296,6 +337,8 @@ class StockChart(QtGui.QMainWindow):
         self.Line=self.ShownGraph[num]['line']
 
         c=0
+
+        # k: name of each Line
         for k in self.Line.keys():
 
             v=self.Line[k]
@@ -315,8 +358,8 @@ class StockChart(QtGui.QMainWindow):
                 self.Points[k]['y'].append(y)
 
 
-            print(k,self.Points[k]['x'][0:10])
-            print(k,self.ShownGraph[num]['line'][k][1][0:10])
+            # print(k,self.Points[k]['x'][0:10])
+            # print(k,self.ShownGraph[num]['line'][k][1][0:10])
             qp.setPen(self.chartColor[k])
             for p in range(1,len(points)):
                 qp.drawLine(points[p-1],points[p])

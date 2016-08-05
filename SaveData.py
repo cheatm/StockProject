@@ -146,7 +146,7 @@ if __name__ == '__main__':
     # changeYahooData()
 
     # readYahooDataFromSql('HK','NASDAQ')
-    drawLine()
+    # drawLine()
 
 
 
