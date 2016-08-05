@@ -139,13 +139,13 @@ if __name__ == '__main__':
     # test()
     createDataBase()
 
-    # saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
-    #saveYahooData(NASDAQ=yesterdaystr)
+    saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
+    # saveYahooData(NASDAQ=yesterdaystr)
     # saveYahooData(HK=todaystr)
 
     # changeYahooData()
 
-    # readYahooDataFromSql('HK','NASDAQ')
+    # print(readYahooDataFromSql('HK','NASDAQ'))
     # drawLine()
 
 
