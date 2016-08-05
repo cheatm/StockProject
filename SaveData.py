@@ -5,6 +5,7 @@ import pandas
 import time,datetime
 import sqlite3
 import os
+import matplotlib.pyplot as plt
 
 DBName='YahooData.db'
 dirPath='D:/StockData'
@@ -83,13 +84,16 @@ def readYahooDataFromSql(*market,conn=None):
         conn=sqlite3.connect(fullDBPath)
         close=True
 
+    outData={}
     for m in market:
         data=pandas.read_sql('''select * FROM %s''' % m , conn)
-        print(data)
+        # print(data)
         # UnKnown=conn.execute('''SELECT * FROM %s WHERE  "index" == "%s" ''' % (m,'2016/08/02')).fetchall()
         # print(len(UnKnown))
+        outData[m]=data
     if close:
         conn.close()
+        return outData
 
 
 def changeYahooData():
@@ -104,6 +108,33 @@ def changeYahooData():
 
     conn.close()
 
+def drawLine():
+    data=readYahooDataFromSql('HK')
+    data=data['HK']
+    # print(data)
+    date=[]
+    RmF=[]
+    HmL=[]
+
+    for i in data.index:
+        t=time.mktime(time.strptime(data.get_value(i,'index'),'%Y/%m/%d'))
+        rf=data.get_value(i,'Raise')-data.get_value(i,'Fall')
+        hl=data.get_value(i,'NewHigh')-data.get_value(i,'NewLow')
+        date.append(t )
+        RmF.append(rf)
+        HmL.append(hl)
+    print(date)
+    print(RmF)
+    print(HmL)
+
+    plt.hold(True)
+    plt.plot(date,RmF)
+    plt.plot(date,HmL)
+    plt.legend(['Raise-Fall','High-Low'])
+    plt.show()
+
+    pass
+
 if __name__ == '__main__':
     # test()
     createDataBase()
@@ -114,7 +145,8 @@ if __name__ == '__main__':
 
     # changeYahooData()
 
-    readYahooDataFromSql('HK','NASDAQ')
+    # readYahooDataFromSql('HK','NASDAQ')
+    drawLine()
 
 
 
