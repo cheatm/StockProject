@@ -10,7 +10,7 @@ class StockChart(QtGui.QMainWindow):
     xRay=[]
 
     # basicGraph to confirm the X axis
-    MainGraph=[]
+    # MainGraph=[]
 
     YR={}
 
@@ -57,14 +57,12 @@ class StockChart(QtGui.QMainWindow):
     # yAxis to show value
     yAxis=[]
 
-
+    # size of xAxis and yAxis
+    xSize=30
+    ySize=50
 
     def __init__(self,parent=None):
         QtGui.QWidget.__init__(self,parent)
-
-        # Chart area size
-        self.areaHeight=self.height()-20
-        self.areaWidth=self.width()-40
 
         self.xCounts=(int)(self.width()*self.alphaX)
         self.command={
@@ -140,7 +138,12 @@ class StockChart(QtGui.QMainWindow):
         self.connect(quit,QtCore.SIGNAL('clicked()'),self.output )
 
     def paintEvent(self, event):
-        self.GHights=[2/(1+len(self.Graph))*self.height()]
+
+        # Chart area size
+        self.areaHeight=self.height()-self.xSize
+        self.areaWidth=self.width()-self.ySize
+
+        self.GHights=[2/(1+len(self.Graph))*self.areaHeight]
         for a in range(1,len(self.Graph)):
             self.GHights.append(1/(1+len(self.Graph))*self.height())
 
@@ -154,15 +157,18 @@ class StockChart(QtGui.QMainWindow):
 
         self.Range=R
 
-        # self.setdefaultChartColor()
-
         qp=QtGui.QPainter()
         qp.begin(self)
         qp.save()
 
-        self.xmodify=(R[0]-R[1])/self.width()
+        self.xmodify=(R[0]-R[1])/self.areaWidth
+
         for f in range(0,len(self.Graph)):
+
             self.drawGraph(event,qp,f,height=self.GHights[f])
+
+        qp.translate(0,-self.xSize)
+        self.drawXaxis(event,qp)
 
         qp.restore()
         qp.end()
@@ -172,15 +178,17 @@ class StockChart(QtGui.QMainWindow):
         qp.restore()
         qp.save()
 
-
-
         startY=0
         for n in range(0,num):
             startY=startY+self.GHights[n]
         self.drawBackGround(event,qp,QtCore.QRect(0,startY,self.width(),height))
+
         self.drawLabel(event,qp,num,y=startY)
+
+        # draw outlines
         qp.setPen(QtGui.QColor(255,255,255))
         qp.drawLine(QtCore.QPoint(0,startY),QtCore.QPoint(self.width(),startY))
+        qp.drawLine(QtCore.QPoint(self.areaWidth,startY),QtCore.QPoint(self.areaWidth,startY+self.GHights[num]))
 
         qp.scale(1,-1)
         qp.translate(0,-startY-height)
@@ -193,8 +201,24 @@ class StockChart(QtGui.QMainWindow):
         self.ymodify[num]=(YR[0]-YR[1])/height
         self.drawLines(event,qp,num=num)
 
-        pass
+    def drawXaxis(self,event,qp):
+        self.drawBackGround(event,qp,QtCore.QRect(0,0,self.width(),self.xSize))
+        qp.setPen(QtGui.QColor(255,255,255))
+        qp.drawLine(0,self.xSize,self.width(),self.xSize)
 
+        font=QtGui.QFont('xAxis',self.xSize-2)
+        qp.setFont(font)
+
+        shown=[]
+        for xa in self.xAxis:
+            x=(xa-self.XR[1])/self.xmodify
+            date=time.localtime(xa)
+            date=time.strftime('%Y/%m/%d %H:%M',date)
+            shown.append([x,date])
+
+        print(shown)
+
+        # pass
 
 
     def drawLabel(self,event,qp,num=0,size=12,y=0):
@@ -204,9 +228,6 @@ class StockChart(QtGui.QMainWindow):
 
         for ct in self.ShownGraph[num].values():
             for name in ct.keys():
-                print('Graph:%s startY:%s' % (num,y))
-                print('%s:%s' % (name,self.chartColor[name]))
-
                 qp.setPen(self.chartColor[name])
                 qp.setFont(font)
 
@@ -215,52 +236,37 @@ class StockChart(QtGui.QMainWindow):
 
 
     def Yrange(self,num):
-        Line={}
+        maxY=[]
+        minY=[]
+
         g=self.ShownGraph[num]
         for type in g.keys():
             if type=='line':
                 for name in g[type].keys():
-                    Line[name]=[
-                        g[type][name][0],
-                        g[type][name][1]
-
-                    ]
-        maxY=[]
-        minY=[]
-
-
-        for l in Line.values():
-
-            maxY.append(max(l[1]))
-            minY.append(min(l[1]))
+                    maxY.append(max( g[type][name][1]))
+                    minY.append(min( g[type][name][1]))
 
         return [max(maxY),min(minY)]
 
 
 
     def Xrange(self):
-        XLine={}
+
+        self.xAxis=[]
+        maxX=[]
+        minX=[]
         for g in self.ShownGraph:
             for l in g.keys():
                 if l == 'line':
                     for name in g[l].keys():
-                        XLine[name]=[
-                            g[l][name][0],
-                            g[l][name][1]
-                        ]
+                        maxX.append(max(g[l][name][0]))
+                        minX.append(min(g[l][name][0]))
 
-        maxX=[]
-        minX=[]
-        maxY=[]
-        minY=[]
+                        self.xAxis=list(set(self.xAxis).union(g[l][name][0]))
 
-        for l in XLine.values():
-            maxX.append(max(l[0]))
-            minX.append(min(l[0]))
-            maxY.append(max(l[1]))
-            minY.append(min(l[1]))
-
-        return [max(maxX),min(minX),max(maxY),min(minY)]
+        self.xAxis.sort()
+        # print(self.xAxis)
+        return [max(maxX),min(minX)]
 
     def defineRange(self):
         leftX=self.xRay[-self.xCounts]
