@@ -51,10 +51,20 @@ class StockChart(QtGui.QMainWindow):
     # color for each line or candle or ....
     chartColor={}
 
+    # xAxis to show date
+    xAxis=[]
+
+    # yAxis to show value
+    yAxis=[]
+
 
 
     def __init__(self,parent=None):
         QtGui.QWidget.__init__(self,parent)
+
+        # Chart area size
+        self.areaHeight=self.height()-20
+        self.areaWeight=self.weight()-40
 
         self.xCounts=(int)(self.width()*self.alphaX)
         self.command={
@@ -202,17 +212,6 @@ class StockChart(QtGui.QMainWindow):
 
                 qp.drawText(c,y+size+2,name)
                 c=c+size*len(name)
-
-
-
-    def setdefaultChartColor(self):
-        i=0
-
-        for k in self.chartLine.keys():
-            self.chartColor[k]=self.colors[i]
-            i+=1
-            if i>len(self.colors):
-                i=0
 
 
     def Yrange(self,num):
