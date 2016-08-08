@@ -105,14 +105,20 @@ class StockChart(QtGui.QMainWindow):
     def importCandle(self,name=None,candle=None,figure=0,color=None,main=False):
         while len(self.Graph)<=figure:
             self.Graph.append({'candle':{}})
+            self.ShownGraph.append({'candle':{}})
 
 
         if name is None:
             name='Candle%s' % len(self.Graph[figure]['candle'])
 
+        if color is not None:
+            self.chartColor[name]=color
+        else:
+            self.chartColor[name]=self.colors[len(self.Graph[figure]['candle'])]
+
         self.Graph[figure]['candle'][name]=candle
 
-        pass
+        print(self.Graph[figure]['candle'][name])
 
     def down(self):
         self.alphaX*=0.8
@@ -198,7 +204,9 @@ class StockChart(QtGui.QMainWindow):
 
         self.ymodify[num]=(YR[0]-YR[1])/height
 
-        self.drawLines(event,qp,num=num)
+        # draw charts
+        self.drawLines(event,qp,num)
+        self.drawCandles(event,qp,num)
 
         qp.scale(1,-1)
         self.drawYaxis(event,qp,num)
@@ -269,10 +277,17 @@ class StockChart(QtGui.QMainWindow):
 
         g=self.ShownGraph[num]
         for type in g.keys():
+
             if type=='line':
                 for name in g[type].keys():
                     maxY.append(max( g[type][name][1]))
                     minY.append(min( g[type][name][1]))
+            if type=='candle':
+                # print(type)
+                for name in g[type].keys():
+                    maxY.append(max( g[type][name][2]))
+                    minY.append(min( g[type][name][3]))
+                    # print(maxY)
 
         return [max(maxY),min(minY)]
 
@@ -285,12 +300,15 @@ class StockChart(QtGui.QMainWindow):
         minX=[]
         for g in self.ShownGraph:
             for l in g.keys():
-                if l == 'line':
-                    for name in g[l].keys():
-                        maxX.append(max(g[l][name][0]))
-                        minX.append(min(g[l][name][0]))
 
-                        self.xAxis=list(set(self.xAxis).union(g[l][name][0]))
+                for name in g[l].keys():
+                    maxX.append(max(g[l][name][0]))
+                    minX.append(min(g[l][name][0]))
+
+                    self.xAxis=list(set(self.xAxis).union(g[l][name][0]))
+
+
+
 
         self.xAxis.sort()
         # print(self.xAxis)
@@ -301,7 +319,7 @@ class StockChart(QtGui.QMainWindow):
             self.xCounts=len(self.xRay)
         leftX=self.xRay[-self.xCounts]
         rightX=self.xRay[-1]
-        # print('left:%s,right%s' % (leftX,rightX))
+
         def xRange(List,mi,ma):
             Mi=None
             Ma=None
@@ -317,22 +335,17 @@ class StockChart(QtGui.QMainWindow):
                         break
             return([Mi,Ma])
 
-        XLine={}
         gn=0
 
         for g in self.Graph:
             for l in g.keys():
-                if l == 'line':
-                    for name in g[l].keys():
-                        xrange=xRange(g[l][name][0],leftX,rightX)
-                        XLine[name]=[
-                            g[l][name][0][xrange[0]:xrange[1]],
-                            g[l][name][1][xrange[0]:xrange[1]]
-                        ]
+                self.ShownGraph[gn][l]={}
+                for name in g[l].keys():
+                    xrange=xRange(g[l][name][0],leftX,rightX)
+                    self.ShownGraph[gn][l][name]=[]
+                    for data in g[l][name]:
+                        self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]])
 
-
-            self.ShownGraph[gn]['line']=XLine
-            XLine={}
             gn=gn+1
 
 
@@ -362,9 +375,47 @@ class StockChart(QtGui.QMainWindow):
 
 
     def drawCandles(self,event,qp,num=0):
+
+        if 'candle' not in self.ShownGraph[num].keys():
+            return (None)
+
+        candle=self.ShownGraph[num]['candle']
+
+        for k in candle.keys():
+            v=candle[k]
+            candlewidth=self.areaWidth/len(v[0])
+            qp.setPen(self.chartColor[k])
+            # qp.setBrush(self.chartColor[k])
+            for i in range(0,len(v[0])):
+                single=[
+                    (v[0][i]-self.XR[1])/self.xmodify
+                ]
+                for s in range(1,5):
+                    single.append((v[s][i]-self.YR[num][1])/self.ymodify[num])
+
+                self.drawSingleCandle(event,qp,single,candlewidth)
+
+            pass
+
+    def drawSingleCandle(self,event,qp,candle,width):
+
+        if candle[1]<candle[4]:
+            # rect=QtCore.QRectF(candle[0]-width/2,candle[1],candle[0]+width/2,candle[4])
+            rect=QtCore.QRectF(QtCore.QPointF(candle[0]-width/2,candle[1]),QtCore.QPointF(candle[0]+width/2,candle[4]))
+            print(rect)
+            qp.drawRect(rect)
+
+        else:
+            pass
+
+
         pass
 
     def drawLines(self,event,qp,num=0):
+
+        if 'line' not in self.ShownGraph[num].keys():
+            return (None)
+
         Line=self.ShownGraph[num]['line']
 
         c=0
@@ -386,9 +437,6 @@ class StockChart(QtGui.QMainWindow):
                 self.Points[k]['x'].append(x)
                 self.Points[k]['y'].append(y)
 
-
-            # print(k,self.Points[k]['x'][0:10])
-            # print(k,self.ShownGraph[num]['line'][k][1][0:10])
             qp.setPen(self.chartColor[k])
             for p in range(1,len(points)):
                 qp.drawLine(points[p-1],points[p])
@@ -401,11 +449,7 @@ class StockChart(QtGui.QMainWindow):
 
 
 
-    def drawCandle(self,event,qp,candle):
-        color=QtGui.QColor(255,255,255)
-        qp.setBrush(color)
-        qp.drawRect(candle[0]+10+4,candle[3]+10,2,candle[2]-candle[3])
-        qp.drawRect(candle[0]+10,candle[1]+10,10,candle[4]-candle[1])
+
 
 
 
@@ -440,8 +484,11 @@ def showChart():
     date=[]
     for d in HSI.tradeDate:
         date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
-    window.importLine(name=HKStock.HKindex[0],line=[
-        date,HSI.closeIndex.tolist()
+    # window.importLine(name=HKStock.HKindex[0],line=[
+    #     date,HSI.closeIndex.tolist()
+    # ])
+    window.importCandle(name=HKStock.HKindex[0],candle=[
+        date,HSI.openIndex.tolist(),HSI.highestIndex.tolist(),HSI.lowestIndex.tolist(),HSI.closeIndex.tolist()
     ])
 
     for i in range(0,6):
