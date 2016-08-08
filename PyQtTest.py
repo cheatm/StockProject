@@ -25,7 +25,7 @@ class StockChart(QtGui.QMainWindow):
     # all data to be drawn
     Graph=[]
 
-    alphaX=0.5
+    alphaX=0.2
 
     # points data to be shown in the graph
     Points={}
@@ -118,7 +118,7 @@ class StockChart(QtGui.QMainWindow):
 
         self.Graph[figure]['candle'][name]=candle
 
-        print(self.Graph[figure]['candle'][name])
+        # print(self.Graph[figure]['candle'][name])
 
     def down(self):
         self.alphaX*=0.8
@@ -222,10 +222,10 @@ class StockChart(QtGui.QMainWindow):
         font=QtGui.QFont('xAxis',self.xSize/3)
         qp.setFont(font)
 
-        shown=[]
         last=0
-        for xa in self.xAxis:
-            x=(xa-self.XR[1])/self.xmodify
+        for xa in sorted(self.shownX.keys()):
+            # x=(xa-self.XR[1])/self.xmodify
+            x=self.shownX[xa]
             date=time.localtime(xa)
             date=time.strftime('%Y/%m/%d %H:%M',date)
 
@@ -233,8 +233,7 @@ class StockChart(QtGui.QMainWindow):
                 qp.drawLine(x,0,x,-4)
                 qp.drawText(x,self.xSize/2,date)
                 last = x+len(date)*(self.xSize/3)
-
-            # shown.append([x,date])
+        pass
 
     def drawYaxis(self,event,qp,num=0,lines=2):
         R=self.YR[num][0]-self.YR[num][1]
@@ -326,18 +325,18 @@ class StockChart(QtGui.QMainWindow):
                 for name in g[l].keys():
                     xrange=xRange(g[l][name][0],leftX,rightX)
                     self.ShownGraph[gn][l][name]=[]
-                    self.xAxis=list(set(self.xAxis).union(g[l][name][0]))
+
                     for data in g[l][name]:
                         self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]])
 
             gn=gn+1
 
-        self.xAxis.sort()
+
 
 
 
     def wheelEvent(self, event):
-        # print(event.delta())
+
         if event.delta()>0:
             self.up()
         else:
@@ -345,18 +344,17 @@ class StockChart(QtGui.QMainWindow):
 
     def mousePressEvent(self, event):
         x=event.x()
-        print(x)
+        # print(x)
 
     def mouseMoveEvent(self, event):
         x=event.x()
         y=event.y()
-        print(x,y)
+        # print(x,y)
 
     def keyPressEvent(self, event):
 
-
         if event.key() in self.command.keys():
-            print((event.key()))
+            # print((event.key()))
             self.command[event.key()]()
 
 
@@ -371,7 +369,7 @@ class StockChart(QtGui.QMainWindow):
             v=candle[k]
             candlewidth=self.areaWidth/len(v[0])*0.9
             qp.setPen(self.chartColor[k])
-            # qp.setBrush(self.chartColor[k])
+
             for i in range(0,len(v[0])):
                 single=[self.shownX[v[0][i]]]
                 for s in range(1,5):
@@ -379,7 +377,7 @@ class StockChart(QtGui.QMainWindow):
 
                 self.drawSingleCandle(event,qp,single,candlewidth,self.chartColor[k])
 
-            pass
+
 
     def drawSingleCandle(self,event,qp,candle,width,color):
 
