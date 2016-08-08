@@ -5,6 +5,7 @@ import EconomicData
 from PyQt4 import QtGui,QtCore
 import HKStock,indicator
 
+
 class StockChart(QtGui.QMainWindow):
 
     xRay=[]
@@ -75,7 +76,7 @@ class StockChart(QtGui.QMainWindow):
         # self.setToolTip('widget')
         # self.initBottoms()
 
-    def importLine(self,name=None,line=None,figure=0,color=None):
+    def importLine(self,name=None,line=None,figure=0,color=None,**args):
 
         while len(self.Graph)<=figure:
             self.Graph.append({'line':{}})
@@ -99,6 +100,10 @@ class StockChart(QtGui.QMainWindow):
         if len(outxray)>0:
             self.xRay.extend(outxray)
             self.xRay.sort()
+
+        for s in args.keys():
+
+            pass
 
 
 
@@ -206,7 +211,11 @@ class StockChart(QtGui.QMainWindow):
         self.drawCandles(event,qp,num)
 
         qp.scale(1,-1)
-        self.drawYaxis(event,qp,num)
+
+        l=2
+        if num==0:
+            l=4
+        self.drawYaxis(event,qp,num,lines=l)
 
 
 
@@ -245,12 +254,14 @@ class StockChart(QtGui.QMainWindow):
 
         for i in range(0,lines):
             value=self.YR[num][1]+(i+1)*gap
-            y=-(i+1)*gap/self.ymodify[num]
+            y=-(value-self.YR[num][1])/self.ymodify[num]
             qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
             qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
+            pass
+
 
         # print(self.YR[num][0]-self.YR[num][1])
-        # pass
+        pass
 
 
     def drawLabel(self,event,qp,num=0,size=12,y=0):
@@ -262,9 +273,9 @@ class StockChart(QtGui.QMainWindow):
             for name in ct.keys():
                 qp.setPen(self.chartColor[name])
                 qp.setFont(font)
-
-                qp.drawText(c,y+size+2,name)
-                c=c+size*len(name)
+                label="%s:%s" % (name,ct[name][-1][-1])
+                qp.drawText(c,y+size+2,label)
+                c=c+size*len(label)*4/5
 
 
     def Yrange(self,num):
@@ -285,7 +296,7 @@ class StockChart(QtGui.QMainWindow):
                     minY.append(min( g[type][name][3]))
                     # print(maxY)
 
-        return [max(maxY),min(minY)]
+        return [max(maxY)*1.01,min(minY)*0.99]
 
 
     def defineRange(self):

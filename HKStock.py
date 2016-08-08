@@ -22,12 +22,12 @@ if __name__ == '__main__':
 
 
 
-    # for i in HKindex:
-    #
-    #     indexData=getIndexData(i)
-    #
-    #     indexData.to_excel('%s.xlsx' % i)
-    indexData=pandas.read_excel('%s.xlsx' % HKindex[1])
+    for i in HKindex:
+
+        indexData=getIndexData(i)
+
+        indexData.to_excel('%s.xlsx' % i)
+    # indexData=pandas.read_excel('%s.xlsx' % HKindex[1])
 
 
     print(indexData)
