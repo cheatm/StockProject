@@ -70,7 +70,7 @@ class StockChart(QtGui.QMainWindow):
             QtCore.Qt.Key_Up:self.up
             }
         # print(self.Data['tradeDate'])
-
+        self.BGcolor= QtGui.QColor(0,0,0)
         self.initWidget()
         # self.setToolTip('widget')
         # self.initBottoms()
@@ -185,7 +185,7 @@ class StockChart(QtGui.QMainWindow):
         startY=0
         for n in range(0,num):
             startY=startY+self.GHights[n]
-        self.drawBackGround(event,qp,QtCore.QRect(0,startY,self.width(),height))
+        self.drawBackGround(event,qp,QtCore.QRect(0,startY,self.width(),height),color=self.BGcolor)
 
         self.drawLabel(event,qp,num,y=startY)
 
@@ -393,21 +393,21 @@ class StockChart(QtGui.QMainWindow):
                 for s in range(1,5):
                     single.append((v[s][i]-self.YR[num][1])/self.ymodify[num])
 
-                self.drawSingleCandle(event,qp,single,candlewidth)
+                self.drawSingleCandle(event,qp,single,candlewidth,self.chartColor[k])
 
             pass
 
-    def drawSingleCandle(self,event,qp,candle,width):
+    def drawSingleCandle(self,event,qp,candle,width,color):
 
         if candle[1]<candle[4]:
-            # rect=QtCore.QRectF(candle[0]-width/2,candle[1],candle[0]+width/2,candle[4])
-            rect=QtCore.QRectF(QtCore.QPointF(candle[0]-width/2,candle[1]),QtCore.QPointF(candle[0]+width/2,candle[4]))
-            print(rect)
-            qp.drawRect(rect)
+            qp.setBrush(self.BGcolor)
 
         else:
-            pass
+            qp.setBrush(color)
 
+        rect=QtCore.QRectF(QtCore.QPointF(candle[0]-width/2,candle[1]),QtCore.QPointF(candle[0]+width/2,candle[4]))
+
+        qp.drawRect(rect)
 
         pass
 
