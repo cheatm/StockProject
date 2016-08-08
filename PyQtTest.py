@@ -156,16 +156,13 @@ class StockChart(QtGui.QMainWindow):
         self.xCounts=(int)(self.width()*self.alphaX)
 
         self.defineRange()
-        R=self.Xrange()
-        self.XR=R[0:2]
 
-        self.Range=R
 
         qp=QtGui.QPainter()
         qp.begin(self)
         qp.save()
 
-        self.xmodify=(R[0]-R[1])/self.areaWidth
+
 
         for f in range(0,len(self.Graph)):
 
@@ -292,33 +289,19 @@ class StockChart(QtGui.QMainWindow):
         return [max(maxY),min(minY)]
 
 
-
-    def Xrange(self):
-
-        self.xAxis=[]
-        maxX=[]
-        minX=[]
-        for g in self.ShownGraph:
-            for l in g.keys():
-
-                for name in g[l].keys():
-                    maxX.append(max(g[l][name][0]))
-                    minX.append(min(g[l][name][0]))
-
-                    self.xAxis=list(set(self.xAxis).union(g[l][name][0]))
-
-
-
-
-        self.xAxis.sort()
-        # print(self.xAxis)
-        return [max(maxX),min(minX)]
-
     def defineRange(self):
         if self.xCounts>len(self.xRay):
             self.xCounts=len(self.xRay)
         leftX=self.xRay[-self.xCounts]
         rightX=self.xRay[-1]
+        self.XR=[rightX,leftX]
+        self.xmodify=(rightX-leftX)/self.areaWidth
+
+        shownXray=self.xRay[-self.xCounts:-1]
+        self.shownX={}
+        for x in range(0,len(shownXray)):
+            self.shownX[shownXray[x]]=(x+0.5)*self.areaWidth/len(shownXray)
+            pass
 
         def xRange(List,mi,ma):
             Mi=None
@@ -343,10 +326,13 @@ class StockChart(QtGui.QMainWindow):
                 for name in g[l].keys():
                     xrange=xRange(g[l][name][0],leftX,rightX)
                     self.ShownGraph[gn][l][name]=[]
+                    self.xAxis=list(set(self.xAxis).union(g[l][name][0]))
                     for data in g[l][name]:
                         self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]])
 
             gn=gn+1
+
+        self.xAxis.sort()
 
 
 
@@ -383,13 +369,11 @@ class StockChart(QtGui.QMainWindow):
 
         for k in candle.keys():
             v=candle[k]
-            candlewidth=self.areaWidth/len(v[0])
+            candlewidth=self.areaWidth/len(v[0])*0.9
             qp.setPen(self.chartColor[k])
             # qp.setBrush(self.chartColor[k])
             for i in range(0,len(v[0])):
-                single=[
-                    (v[0][i]-self.XR[1])/self.xmodify
-                ]
+                single=[self.shownX[v[0][i]]]
                 for s in range(1,5):
                     single.append((v[s][i]-self.YR[num][1])/self.ymodify[num])
 
@@ -401,9 +385,12 @@ class StockChart(QtGui.QMainWindow):
 
         if candle[1]<candle[4]:
             qp.setBrush(self.BGcolor)
+            qp.drawLine(QtCore.QPointF(candle[0],candle[3]),QtCore.QPointF(candle[0],candle[1]))
+            qp.drawLine(QtCore.QPointF(candle[0],candle[2]),QtCore.QPointF(candle[0],candle[4]))
 
         else:
             qp.setBrush(color)
+            qp.drawLine(QtCore.QPointF(candle[0],candle[2]),QtCore.QPointF(candle[0],candle[3]))
 
         rect=QtCore.QRectF(QtCore.QPointF(candle[0]-width/2,candle[1]),QtCore.QPointF(candle[0]+width/2,candle[4]))
 
@@ -430,7 +417,8 @@ class StockChart(QtGui.QMainWindow):
 
             self.Points[k]={'x':[],'y':[]}
             for i in range(0,len(v[0])):
-                x=(v[0][i]-self.XR[1])/self.xmodify
+                x=self.shownX[v[0][i]]
+                # x=(v[0][i]-self.XR[1])/self.xmodify
                 y=(v[1][i]-self.YR[num][1])/self.ymodify[num]
 
                 points.append(QtCore.QPointF(x,y))
