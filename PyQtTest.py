@@ -117,12 +117,12 @@ class StockChart(QtGui.QMainWindow):
     def down(self):
         self.alphaX*=0.8
         self.repaint()
-        print('down',self.xCounts)
+
 
     def up(self):
         self.alphaX/=0.8
         self.repaint()
-        print('up',self.xCounts)
+
 
     def initWidget(self):
 
@@ -147,8 +147,6 @@ class StockChart(QtGui.QMainWindow):
         for a in range(1,len(self.Graph)):
             self.GHights.append(1/(1+len(self.Graph))*self.height())
 
-        # self.setdefaultChartColor()
-
         self.xCounts=(int)(self.width()*self.alphaX)
 
         self.defineRange()
@@ -167,7 +165,7 @@ class StockChart(QtGui.QMainWindow):
 
             self.drawGraph(event,qp,f,height=self.GHights[f])
 
-        qp.translate(0,-self.xSize)
+
         self.drawXaxis(event,qp)
 
         qp.restore()
@@ -196,28 +194,58 @@ class StockChart(QtGui.QMainWindow):
         YR=self.Yrange(num)
 
         self.YR[num]=YR
-        print(self.YR)
-        # print(self.Line.keys())
+        # print('YR : ',self.YR)
+
         self.ymodify[num]=(YR[0]-YR[1])/height
+
         self.drawLines(event,qp,num=num)
+
+        qp.scale(1,-1)
+        self.drawYaxis(event,qp,num)
+
+
+
+
 
     def drawXaxis(self,event,qp):
         self.drawBackGround(event,qp,QtCore.QRect(0,0,self.width(),self.xSize))
         qp.setPen(QtGui.QColor(255,255,255))
-        qp.drawLine(0,self.xSize,self.width(),self.xSize)
 
-        font=QtGui.QFont('xAxis',self.xSize-2)
+        # draw X line
+        qp.drawLine(0,0,self.width(),0)
+
+        font=QtGui.QFont('xAxis',self.xSize/3)
         qp.setFont(font)
 
         shown=[]
+        last=0
         for xa in self.xAxis:
             x=(xa-self.XR[1])/self.xmodify
             date=time.localtime(xa)
             date=time.strftime('%Y/%m/%d %H:%M',date)
-            shown.append([x,date])
 
-        print(shown)
+            if x > last :
+                qp.drawLine(x,0,x,-4)
+                qp.drawText(x,self.xSize/2,date)
+                last = x+len(date)*(self.xSize/3)
 
+            # shown.append([x,date])
+
+    def drawYaxis(self,event,qp,num=0,lines=2):
+        R=self.YR[num][0]-self.YR[num][1]
+        gap=R/(lines+1)
+
+        font=QtGui.QFont('yAxis',self.xSize/3)
+        qp.setFont(font)
+        qp.setPen(QtGui.QColor(255,255,255))
+
+        for i in range(0,lines):
+            value=self.YR[num][1]+(i+1)*gap
+            y=-(i+1)*gap/self.ymodify[num]
+            qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
+            qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
+
+        # print(self.YR[num][0]-self.YR[num][1])
         # pass
 
 
@@ -269,6 +297,8 @@ class StockChart(QtGui.QMainWindow):
         return [max(maxX),min(minX)]
 
     def defineRange(self):
+        if self.xCounts>len(self.xRay):
+            self.xCounts=len(self.xRay)
         leftX=self.xRay[-self.xCounts]
         rightX=self.xRay[-1]
         # print('left:%s,right%s' % (leftX,rightX))
@@ -299,7 +329,7 @@ class StockChart(QtGui.QMainWindow):
                             g[l][name][0][xrange[0]:xrange[1]],
                             g[l][name][1][xrange[0]:xrange[1]]
                         ]
-                        print('definerange',len(XLine[name][0]))
+
 
             self.ShownGraph[gn]['line']=XLine
             XLine={}
@@ -331,20 +361,21 @@ class StockChart(QtGui.QMainWindow):
             self.command[event.key()]()
 
 
+    def drawCandles(self,event,qp,num=0):
+        pass
+
     def drawLines(self,event,qp,num=0):
-        self.Line=self.ShownGraph[num]['line']
+        Line=self.ShownGraph[num]['line']
 
         c=0
 
         # k: name of each Line
-        for k in self.Line.keys():
+        for k in Line.keys():
 
-            v=self.Line[k]
+            v=Line[k]
             points=[]
 
-
             x,y=0,0
-
 
             self.Points[k]={'x':[],'y':[]}
             for i in range(0,len(v[0])):
