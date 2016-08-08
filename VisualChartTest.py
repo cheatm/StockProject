@@ -62,6 +62,8 @@ def showChart():
         date,zero
     ],figure=3)
 
+    stockChart.importExtraLine([date[-5],0],[date[-1],2],3)
+
     stockChart.show()
     sys.exit(app.exec_())
 

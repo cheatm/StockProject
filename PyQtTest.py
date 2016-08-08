@@ -31,12 +31,6 @@ class StockChart(QtGui.QMainWindow):
     # points data to be shown in the graph
     Points={}
 
-    # lines to be drawn
-    Line={}
-
-    # candles to be drawn
-    Candle={}
-
     # default color
     colors=[
         QtGui.QColor('cyan'),
@@ -61,6 +55,9 @@ class StockChart(QtGui.QMainWindow):
     # size of xAxis and yAxis
     xSize=30
     ySize=50
+
+    # supportLines
+    extraLines=[]
 
     def __init__(self,parent=None):
         QtGui.QWidget.__init__(self,parent)
@@ -263,6 +260,16 @@ class StockChart(QtGui.QMainWindow):
         # print(self.YR[num][0]-self.YR[num][1])
         pass
 
+    def importExtraLine(self,point1,point2,num=0):
+        while len(self.extraLines)<=num:
+            self.extraLines.append([])
+        self.extraLines[num].append([point1,point2])
+
+        pass
+
+    def drawExtraLine(self,event,qp,num):
+
+        pass
 
     def drawLabel(self,event,qp,num=0,size=12,y=0):
         c=2
