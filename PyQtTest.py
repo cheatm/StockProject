@@ -258,7 +258,7 @@ class StockChart(QtGui.QMainWindow):
 
     def drawYaxis(self,event,qp,num=0,lines=2):
         R=self.YR[num][0]-self.YR[num][1]
-        # gap=R/(lines+1)
+
 
         font=QtGui.QFont('yAxis',self.xSize/3)
         qp.setFont(font)

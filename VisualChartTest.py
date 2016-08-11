@@ -8,7 +8,8 @@ def showChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=StockChart()
 
-    HSI=pandas.read_excel('%s.xlsx' % HKStock.HKindex[0])
+    # HSI=pandas.read_excel('%s.xlsx' % HKStock.HKindex[0])
+    HSI=HKStock.readIndexData(HKStock.HKindex[0],True)
     date=[]
     for d in HSI.tradeDate:
         date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
@@ -19,8 +20,8 @@ def showChart():
 
     for i in range(0,6):
 
-
-        data=pandas.read_excel('%s.xlsx' % HKStock.HKindex[i])
+        data=HKStock.readIndexData(HKStock.HKindex[i],update=True)
+        # data=pandas.read_excel('%s.xlsx' % HKStock.HKindex[i])
         ind=indicator.MOMENTUM(data,60,'closeIndex')
 
         date=[]

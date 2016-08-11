@@ -1,5 +1,6 @@
 import pandas
 import tushare as ts
+import  time
 
 
 HKindex=['HSI','HSCEI','HSC','HSF','HSCCI','HSP','HSU']
@@ -13,6 +14,23 @@ def setToken(token):
 def getIndexData(tick):
     print('Requiring index %s' % tick)
     data=mkt.MktIdxd(ticker=tick,field='ticker,tradeDate,openIndex,lowestIndex,highestIndex,closeIndex')
+
+    return(data)
+
+def readIndexData(tick,update=False):
+    data=pandas.read_excel('%s.xlsx' % tick)
+
+    if update:
+        lastDate = data.tradeDate.tolist()[-1]
+        ld=time.mktime(time.strptime(lastDate,'%Y-%m-%d'))
+        ct=time.localtime()
+        ct=time.strftime('%Y-%m-%d',ct)
+        ct=time.strptime(ct,'%Y-%m-%d')
+        ct=time.mktime(ct)
+        if ct>ld:
+            data=getIndexData(tick)
+
+        data.to_excel('%s.xlsx' % tick)
 
     return(data)
 
@@ -37,4 +55,5 @@ if __name__ == '__main__':
     # print(indexData)
 
     # print(getStockData())
-    print(ts.get_token())
+    # print(ts.get_token())
+    print(readIndexData(HKindex[1]))
