@@ -52,15 +52,16 @@ def showChart():
     stockChart.importLine('Raise-Fall',line=[
         date,RmF
     ],figure=2)
-    stockChart.importLine('ZeroLine',line=[
-        date,zero
-    ],figure=2)
+    # stockChart.importLine('ZeroLine',line=[
+    #     date,zero
+    # ],figure=2)
+    stockChart.setYlabel(0,num=2)
     stockChart.importLine('NewHigh-NewLow',line=[
         date,HmL
     ],figure=3)
-    stockChart.importLine('ZeroLine',line=[
-        date,zero
-    ],figure=3)
+    # stockChart.importLine('ZeroLine',line=[
+    #     date,zero
+    # ],figure=3)
 
     stockChart.importExtraLine([date[-5],0],[date[-1],2],3)
 

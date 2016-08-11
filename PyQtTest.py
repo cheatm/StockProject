@@ -59,6 +59,9 @@ class StockChart(QtGui.QMainWindow):
     # supportLines
     extraLines=[]
 
+    # extra y label to draw
+    yLabel={}
+
     def __init__(self,parent=None):
         QtGui.QWidget.__init__(self,parent)
 
@@ -209,10 +212,7 @@ class StockChart(QtGui.QMainWindow):
 
         qp.scale(1,-1)
 
-        l=2
-        if num==0:
-            l=4
-        self.drawYaxis(event,qp,num,lines=l)
+        self.drawYaxis(event,qp,num)
 
 
 
@@ -241,23 +241,46 @@ class StockChart(QtGui.QMainWindow):
                 last = x+len(date)*(self.xSize/3)
         pass
 
+    yLnumber={}
+
+    def setYlabel(self,value=None,count=None,num=0,):
+        if value is not None:
+            if num not in self.yLabel.keys():
+                self.yLabel[num]=[value]
+            else:
+                self.yLabel[num].append(value)
+
+        if count is not None:
+            if num not in self.yLnumber.keys():
+                self.yLnumber[num]=count
+            else:
+                self.yLnumber[num]=count
+
     def drawYaxis(self,event,qp,num=0,lines=2):
         R=self.YR[num][0]-self.YR[num][1]
-        gap=R/(lines+1)
+        # gap=R/(lines+1)
 
         font=QtGui.QFont('yAxis',self.xSize/3)
         qp.setFont(font)
         qp.setPen(QtGui.QColor(255,255,255))
 
-        for i in range(0,lines):
-            value=self.YR[num][1]+(i+1)*gap
-            y=-(value-self.YR[num][1])/self.ymodify[num]
-            qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
-            qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
-            pass
+        if num in self.yLabel.keys():
+            for value in self.yLabel[num]:
+                y=-(value-self.YR[num][1])/self.ymodify[num]
+                qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
+                qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
+                pass
+        else:
+            if num not in self.yLnumber.keys():
+                self.yLnumber[num]=2
+            gap=R/(self.yLnumber[num]+1)
+            for i in range(0,self.yLnumber[num]):
+                value=self.YR[num][1]+(i+1)*gap
+                y=-(value-self.YR[num][1])/self.ymodify[num]
+                qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
+                qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
+                pass
 
-
-        # print(self.YR[num][0]-self.YR[num][1])
         pass
 
     def importExtraLine(self,point1,point2,num=0):
