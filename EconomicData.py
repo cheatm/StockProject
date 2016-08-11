@@ -132,7 +132,23 @@ def nfpCatch():
 
     ]
 
+def IPAddressSearcher():
+    url="http://www.xicidaili.com/nn/1"
+    User_Agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'
+    header = {}
+    header['User-Agent'] = User_Agent
+    pattern1='''<table id="ip_list">(.*?)</table>'''
+    pattern2='''<tr class.*?<td class.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?href.*?</tr>'''
 
+    page=requests.get(url,headers=header)
+
+
+    addresses=re.findall(pattern1,page.text,re.S)
+    addressList=re.findall(pattern2,addresses[0],re.S)
+
+    out=pandas.DataFrame(addressList)
+
+    return(out)
 
 if __name__ == '__main__':
     # print(getNonFarmPayroll())
@@ -141,6 +157,6 @@ if __name__ == '__main__':
     # print(getUSInitialJoblessClaims())
     # print(test1())
     # print(getYahooData())
-
-
+    # print(IPAddressSearcher())
+    
     time.sleep(5)
