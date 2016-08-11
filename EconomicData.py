@@ -75,7 +75,7 @@ def test1():
 
     return data
 
-def getYahooData():
+def getYahooData(proxy=None):
     url='https://hk.finance.yahoo.com/advances'
     # 修改header 伪装成浏览器
     '''
@@ -89,12 +89,15 @@ def getYahooData():
     user-agent:Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36
     '''
     header={
-        'user-agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36'
+        'user-agent':'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'
+        # 'user-agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36'
         # 'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'}
     # header={'User-Agent':'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Maxthon/4.4.8.1000 Chrome/30.0.1599.101 Safari/537.36'}
     }
 
-    page=requests.get(url,headers=header,timeout=5000)
+    # proxy={'http': 'http://182.38.24.70:8118'}
+
+    page=requests.get(url,headers=header,proxies=proxy,timeout=5000)
     bodyPattern='''<th>HK</th><th>NASDAQ</th>.*?<tbody>(.*?)</tbody>'''
     tbody=re.search(bodyPattern,page.text,re.S)
 
@@ -146,9 +149,29 @@ def IPAddressSearcher():
     addresses=re.findall(pattern1,page.text,re.S)
     addressList=re.findall(pattern2,addresses[0],re.S)
 
-    out=pandas.DataFrame(addressList)
+    # out=pandas.DataFrame(addressList)
 
-    return(out)
+    return(addressList)
+
+def IpTest(addressList):
+    proxys=[]
+    for a in addressList:
+        host="http://%s:%s" % a
+        proxy={'http':host}
+        try:
+            res=requests.get("http://ip.chinaz.com/getip.aspx",proxies=proxy)
+            proxys.append(proxy)
+            print(res.text)
+            if(len(proxys)>=10):
+                return (proxys)
+        except Exception as e:
+            print(proxy)
+            print(e)
+            continue
+
+        time.sleep(3)
+    return (proxys)
+
 
 if __name__ == '__main__':
     # print(getNonFarmPayroll())
@@ -156,7 +179,16 @@ if __name__ == '__main__':
     # print(getEconomicCalendar())
     # print(getUSInitialJoblessClaims())
     # print(test1())
-    # print(getYahooData())
+    print(getYahooData())
     # print(IPAddressSearcher())
-    
+
+    # proxies=(IpTest(IPAddressSearcher()))
+    # for p in proxies:
+    #     print(p)
+    #     try:
+    #         print(getYahooData(proxy=p))
+    #     except Exception as e:
+    #         print(e)
+    #         print('---------------------------------------------------------')
+
     time.sleep(5)
