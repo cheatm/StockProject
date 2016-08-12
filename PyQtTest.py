@@ -11,9 +11,6 @@ class StockChart(QtGui.QMainWindow):
 
     xRay=[]
 
-    # basicGraph to confirm the X axis
-    # MainGraph=[]
-
     YR={}
 
     # numbers to adjust Y axis of each graph
@@ -21,6 +18,7 @@ class StockChart(QtGui.QMainWindow):
 
     # data to be shown in the graph
     ShownGraph=[]
+    ShownGraphDict={}
 
     GHights=[]
 
@@ -106,8 +104,6 @@ class StockChart(QtGui.QMainWindow):
 
             pass
 
-
-
     def importCandle(self,name=None,candle=None,figure=0,color=None,main=False):
         while len(self.Graph)<=figure:
             self.Graph.append({'candle':{}})
@@ -163,17 +159,13 @@ class StockChart(QtGui.QMainWindow):
 
         self.defineRange()
 
-
         qp=QtGui.QPainter()
         qp.begin(self)
         qp.save()
 
-
-
         for f in range(0,len(self.Graph)):
 
             self.drawGraph(event,qp,f,height=self.GHights[f])
-
 
         self.drawXaxis(event,qp)
 
@@ -184,10 +176,33 @@ class StockChart(QtGui.QMainWindow):
 
     def drawCrossLine(self,event,qp):
         if self.hasMouseTracking():
-            print('drawCrossLine:%s %s' % (self.posx,self.posy))
+
+            textSize=self.xSize*3/5
             qp.setPen(QtGui.QColor(255,255,255))
+            qp.setFont(QtGui.QFont('fontCross',textSize))
+
             qp.drawLine(QtCore.QPoint(self.posx,0),QtCore.QPoint(self.posx,self.areaHeight))
             qp.drawLine(QtCore.QPoint(0,self.posy),QtCore.QPoint(self.areaWidth,self.posy))
+
+            date=self.toStrDate(self.crossLineX)
+            qp.drawText(self.posx,self.height()-textSize/3,date)
+
+            # gap=self.areaWidth/len(self.shownX)/2
+            # for t in self.shownX.keys():
+            #     if abs(self.posx-self.shownX[t])<=gap:
+            #         date=self.toStrDate(t)
+            #         self.crossLineX=date
+            #         qp.drawText(self.posx,self.height()-textSize/3,date)
+            #
+            #         break
+
+    def getCrossLineXValue(self):
+        gap=self.areaWidth/len(self.shownX)/2
+        for t in self.shownX.keys():
+            if abs(self.posx-self.shownX[t])<=gap:
+                date=self.toStrDate(t)
+                return(t)
+
 
 
     def drawGraph(self,event,qp,num,height):
@@ -200,7 +215,13 @@ class StockChart(QtGui.QMainWindow):
             startY=startY+self.GHights[n]
         self.drawBackGround(event,qp,QtCore.QRect(0,startY,self.width(),height),color=self.BGcolor)
 
-        self.drawLabel(event,qp,num,y=startY)
+
+        if self.hasMouseTracking():
+            self.drawLabel(event,qp,num,y=startY,x=self.crossLineX)
+        else:
+            self.drawLabel(event,qp,num,y=startY)
+
+        # self.drawLabel(event,qp,num,y=startY)
 
         # draw outlines
         qp.setPen(QtGui.QColor(255,255,255))
@@ -225,10 +246,6 @@ class StockChart(QtGui.QMainWindow):
 
         self.drawYaxis(event,qp,num)
 
-
-
-
-
     def drawXaxis(self,event,qp):
         self.drawBackGround(event,qp,QtCore.QRect(0,0,self.width(),self.xSize))
         qp.setPen(QtGui.QColor(255,255,255))
@@ -244,14 +261,18 @@ class StockChart(QtGui.QMainWindow):
         for xa in sorted(self.shownX.keys()):
 
             x=self.shownX[xa]
-            date=time.localtime(xa)
-            date=time.strftime('%Y/%m/%d %H:%M',date)
+
+            date=self.toStrDate(xa)
 
             if x > last :
                 qp.drawLine(x,0,x,-4)
                 qp.drawText(x,textSize*4/3,date)
                 last = x+len(date)*(textSize)
         pass
+
+    def toStrDate(self,seconds):
+        date=time.localtime(seconds)
+        return (time.strftime('%Y/%m/%d %H:%M',date))
 
     yLnumber={}
 
@@ -306,10 +327,16 @@ class StockChart(QtGui.QMainWindow):
 
         pass
 
-    def drawLabel(self,event,qp,num=0,size=12,y=0):
+    def drawLabel(self,event,qp,num=0,size=10,y=0,x=None):
         c=2
         font=QtGui.QFont('label',size)
         font.setWeight(63)
+
+        def findIndex(lis,value):
+            if value is not None:
+                if value in lis:
+                    return (lis.index(value))
+            return (-1)
 
         for ct in self.ShownGraph[num].values():
             for name in ct.keys():
@@ -317,8 +344,10 @@ class StockChart(QtGui.QMainWindow):
                 qp.setFont(font)
 
                 label="%s:" % name
+
                 for v in ct[name][1:]:
-                    label=label+str(v[-1])+" "
+                    label=label+str(v[ findIndex(ct[name][0],x) ])+" "
+                    # print(x)
                 # print(label)
 
                 # label="%s:%s" % (name,ct[name][-1][-1])
@@ -391,10 +420,6 @@ class StockChart(QtGui.QMainWindow):
 
             gn=gn+1
 
-
-
-
-
     def wheelEvent(self, event):
 
         if event.delta()>0:
@@ -406,6 +431,7 @@ class StockChart(QtGui.QMainWindow):
         self.setMouseTracking(self.hasMouseTracking()==False )
         self.posx=event.x()
         self.posy=event.y()
+        self.crossLineX=self.getCrossLineXValue()
         self.update()
 
 
@@ -415,6 +441,7 @@ class StockChart(QtGui.QMainWindow):
     def mouseMoveEvent(self, event):
         self.posx=event.x()
         self.posy=event.y()
+        self.crossLineX=self.getCrossLineXValue()
         self.update()
 
     def keyPressEvent(self, event):
