@@ -185,7 +185,7 @@ class StockChart(QtGui.QMainWindow):
             qp.drawLine(QtCore.QPoint(0,self.posy),QtCore.QPoint(self.areaWidth,self.posy))
 
             date=self.toStrDate(self.crossLineX)
-            qp.drawText(self.posx,self.height()-textSize/3,date)
+            qp.drawText(self.posx+2,self.areaHeight-2,date)
 
 
     def getCrossLineXValue(self):
@@ -369,7 +369,7 @@ class StockChart(QtGui.QMainWindow):
         self.XR=[rightX,leftX]
         self.xmodify=(rightX-leftX)/self.areaWidth
 
-        shownXray=self.xRay[-self.xCounts:-1]
+        shownXray=self.xRay[-self.xCounts:]
         self.shownX={}
         for x in range(0,len(shownXray)):
             self.shownX[shownXray[x]]=(x+0.5)*self.areaWidth/len(shownXray)
@@ -397,10 +397,12 @@ class StockChart(QtGui.QMainWindow):
                 self.ShownGraph[gn][l]={}
                 for name in g[l].keys():
                     xrange=xRange(g[l][name][0],leftX,rightX)
+
                     self.ShownGraph[gn][l][name]=[]
 
                     for data in g[l][name]:
-                        self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]])
+                        self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]+1])
+                        
 
             gn=gn+1
 

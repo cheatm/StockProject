@@ -8,7 +8,7 @@ def showChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=StockChart()
 
-    HSI=HKStock.readIndexData(HKStock.HKindex[0],False)
+    HSI=HKStock.readIndexData(HKStock.HKindex[0],True)
     date=[]
     for d in HSI.tradeDate:
         date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
@@ -19,7 +19,7 @@ def showChart():
 
     for i in range(0,6):
 
-        data=HKStock.readIndexData(HKStock.HKindex[i],update=False)
+        data=HKStock.readIndexData(HKStock.HKindex[i],update=True)
 
         ind=indicator.MOMENTUM(data,60,'closeIndex')
 
@@ -42,9 +42,8 @@ def showChart():
         date.append(t )
         RmF.append(rf)
         HmL.append(hl)
-    # print(date)
-    # print(RmF)
-    # print(HmL)
+
+    # print(time.localtime(date[-1]))
 
     zero=[]
     for d in date:
@@ -52,16 +51,12 @@ def showChart():
     stockChart.importLine('Raise-Fall',line=[
         date,RmF
     ],figure=2)
-    # stockChart.importLine('ZeroLine',line=[
-    #     date,zero
-    # ],figure=2)
+
     stockChart.setYlabel(0,num=2)
     stockChart.importLine('NewHigh-NewLow',line=[
         date,HmL
     ],figure=3)
-    # stockChart.importLine('ZeroLine',line=[
-    #     date,zero
-    # ],figure=3)
+
 
     stockChart.importExtraLine([date[-5],0],[date[-1],2],3)
 
