@@ -6,6 +6,7 @@ from PyQt4 import QtGui,QtCore
 import HKStock,indicator
 
 
+
 class StockChart(QtGui.QMainWindow):
 
     xRay=[]
@@ -53,7 +54,7 @@ class StockChart(QtGui.QMainWindow):
     yAxis=[]
 
     # size of xAxis and yAxis
-    xSize=30
+    xSize=20
     ySize=50
 
     # supportLines
@@ -156,7 +157,7 @@ class StockChart(QtGui.QMainWindow):
 
         self.GHights=[2/(1+len(self.Graph))*self.areaHeight]
         for a in range(1,len(self.Graph)):
-            self.GHights.append(1/(1+len(self.Graph))*self.height())
+            self.GHights.append(1/(1+len(self.Graph))*self.areaHeight)
 
         self.xCounts=(int)(self.width()*self.alphaX)
 
@@ -177,7 +178,17 @@ class StockChart(QtGui.QMainWindow):
         self.drawXaxis(event,qp)
 
         qp.restore()
+        self.drawCrossLine(event,qp)
+
         qp.end()
+
+    def drawCrossLine(self,event,qp):
+        if self.hasMouseTracking():
+            print('drawCrossLine:%s %s' % (self.posx,self.posy))
+            qp.setPen(QtGui.QColor(255,255,255))
+            qp.drawLine(QtCore.QPoint(self.posx,0),QtCore.QPoint(self.posx,self.areaHeight))
+            qp.drawLine(QtCore.QPoint(0,self.posy),QtCore.QPoint(self.areaWidth,self.posy))
+
 
     def drawGraph(self,event,qp,num,height):
 
@@ -225,20 +236,21 @@ class StockChart(QtGui.QMainWindow):
         # draw X line
         qp.drawLine(0,0,self.width(),0)
 
-        font=QtGui.QFont('xAxis',self.xSize/3)
+        textSize=self.xSize*3/5
+        font=QtGui.QFont('xAxis',textSize)
         qp.setFont(font)
 
         last=0
         for xa in sorted(self.shownX.keys()):
-            # x=(xa-self.XR[1])/self.xmodify
+
             x=self.shownX[xa]
             date=time.localtime(xa)
             date=time.strftime('%Y/%m/%d %H:%M',date)
 
             if x > last :
                 qp.drawLine(x,0,x,-4)
-                qp.drawText(x,self.xSize/2,date)
-                last = x+len(date)*(self.xSize/3)
+                qp.drawText(x,textSize*4/3,date)
+                last = x+len(date)*(textSize)
         pass
 
     yLnumber={}
@@ -259,8 +271,8 @@ class StockChart(QtGui.QMainWindow):
     def drawYaxis(self,event,qp,num=0,lines=2):
         R=self.YR[num][0]-self.YR[num][1]
 
-
-        font=QtGui.QFont('yAxis',self.xSize/3)
+        textSize=self.xSize*3/5
+        font=QtGui.QFont('yAxis',textSize)
         qp.setFont(font)
         qp.setPen(QtGui.QColor(255,255,255))
 
@@ -268,7 +280,7 @@ class StockChart(QtGui.QMainWindow):
             for value in self.yLabel[num]:
                 y=-(value-self.YR[num][1])/self.ymodify[num]
                 qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
-                qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
+                qp.drawText(self.areaWidth+1,y+textSize/2,' %s' % value)
                 pass
         else:
             if num not in self.yLnumber.keys():
@@ -278,7 +290,7 @@ class StockChart(QtGui.QMainWindow):
                 value=self.YR[num][1]+(i+1)*gap
                 y=-(value-self.YR[num][1])/self.ymodify[num]
                 qp.drawLine(self.areaWidth,y,self.areaWidth-4,y)
-                qp.drawText(self.areaWidth+1,y+self.xSize/3/2,'%s' % value)
+                qp.drawText(self.areaWidth+1,y+textSize/2,' %s' % value)
                 pass
 
         pass
@@ -303,9 +315,16 @@ class StockChart(QtGui.QMainWindow):
             for name in ct.keys():
                 qp.setPen(self.chartColor[name])
                 qp.setFont(font)
-                label="%s:%s" % (name,ct[name][-1][-1])
+
+                label="%s:" % name
+                for v in ct[name][1:]:
+                    label=label+str(v[-1])+" "
+                # print(label)
+
+                # label="%s:%s" % (name,ct[name][-1][-1])
                 qp.drawText(c,y+size+2,label)
                 c=c+size*len(label)*4/5
+
 
 
     def Yrange(self,num):
@@ -326,7 +345,7 @@ class StockChart(QtGui.QMainWindow):
                     minY.append(min( g[type][name][3]))
                     # print(maxY)
 
-        return [max(maxY)*1.01,min(minY)*0.99]
+        return [max(maxY),min(minY)]
 
 
     def defineRange(self):
@@ -384,13 +403,19 @@ class StockChart(QtGui.QMainWindow):
             self.down()
 
     def mousePressEvent(self, event):
-        x=event.x()
-        # print(x)
+        self.setMouseTracking(self.hasMouseTracking()==False )
+        self.posx=event.x()
+        self.posy=event.y()
+        self.update()
+
+
+    posx=0
+    posy=0
 
     def mouseMoveEvent(self, event):
-        x=event.x()
-        y=event.y()
-        # print(x,y)
+        self.posx=event.x()
+        self.posy=event.y()
+        self.update()
 
     def keyPressEvent(self, event):
 
@@ -474,21 +499,11 @@ class StockChart(QtGui.QMainWindow):
         qp.setBrush(color)
         qp.drawRect(20,20,10,30)
 
-
-
-
-
-
-
     def drawBackGround(self,event,qp,rect,color=QtGui.QColor(0,0,0)):
 
         qp.setPen(color)
         qp.setBrush(color)
         qp.drawRect(rect)
-
-
-
-
 
     def center(self):
         screen=QtGui.QDesktopWidget().screenGeometry()

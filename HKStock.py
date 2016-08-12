@@ -20,7 +20,7 @@ def getIndexData(tick):
 def readIndexData(tick,update=False):
     data=pandas.read_excel('%s.xlsx' % tick)
 
-    if update:
+    if update :
         lastDate = data.tradeDate.tolist()[-1]
         ld=time.mktime(time.strptime(lastDate,'%Y-%m-%d'))
         ct=time.localtime()
@@ -54,6 +54,9 @@ if __name__ == '__main__':
     #
     # print(indexData)
 
+
+
     # print(getStockData())
     # print(ts.get_token())
     print(readIndexData(HKindex[1]))
+
