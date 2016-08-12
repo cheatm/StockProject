@@ -187,14 +187,6 @@ class StockChart(QtGui.QMainWindow):
             date=self.toStrDate(self.crossLineX)
             qp.drawText(self.posx,self.height()-textSize/3,date)
 
-            # gap=self.areaWidth/len(self.shownX)/2
-            # for t in self.shownX.keys():
-            #     if abs(self.posx-self.shownX[t])<=gap:
-            #         date=self.toStrDate(t)
-            #         self.crossLineX=date
-            #         qp.drawText(self.posx,self.height()-textSize/3,date)
-            #
-            #         break
 
     def getCrossLineXValue(self):
         gap=self.areaWidth/len(self.shownX)/2
@@ -202,8 +194,6 @@ class StockChart(QtGui.QMainWindow):
             if abs(self.posx-self.shownX[t])<=gap:
                 date=self.toStrDate(t)
                 return(t)
-
-
 
     def drawGraph(self,event,qp,num,height):
 
@@ -221,9 +211,7 @@ class StockChart(QtGui.QMainWindow):
         else:
             self.drawLabel(event,qp,num,y=startY)
 
-        # self.drawLabel(event,qp,num,y=startY)
 
-        # draw outlines
         qp.setPen(QtGui.QColor(255,255,255))
         qp.drawLine(QtCore.QPoint(0,startY),QtCore.QPoint(self.width(),startY))
         qp.drawLine(QtCore.QPoint(self.areaWidth,startY),QtCore.QPoint(self.areaWidth,startY+self.GHights[num]))
@@ -234,7 +222,6 @@ class StockChart(QtGui.QMainWindow):
         YR=self.Yrange(num)
 
         self.YR[num]=YR
-        # print('YR : ',self.YR)
 
         self.ymodify[num]=(YR[0]-YR[1])/height
 
@@ -347,10 +334,7 @@ class StockChart(QtGui.QMainWindow):
 
                 for v in ct[name][1:]:
                     label=label+str(v[ findIndex(ct[name][0],x) ])+" "
-                    # print(x)
-                # print(label)
 
-                # label="%s:%s" % (name,ct[name][-1][-1])
                 qp.drawText(c,y+size+2,label)
                 c=c+size*len(label)*4/5
 
