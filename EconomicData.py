@@ -2,6 +2,7 @@ import re
 import requests
 import pandas
 import time
+import random
 
 def getNonFarmPayroll():
     nfp=requests.get('https://www.oanda.com/forex-trading/analysis/economic-indicators/united-states/employment/non-farm-payroll')
@@ -88,14 +89,15 @@ def getYahooData(proxy=None):
     upgrade-insecure-requests:1
     user-agent:Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36
     '''
-    header={
 
-        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586'
-        # 'user-agent':'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'
-        # 'user-agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36'
-        # 'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'
-    # header={'User-Agent':'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Maxthon/4.4.8.1000 Chrome/30.0.1599.101 Safari/537.36'}
-    }
+    UAlist=[
+    {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36 OPR/39.0.2256.48'},
+    {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586'},
+
+    {'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'}
+    ]
+
+    header=UAlist[0]
 
     # proxy={'http': 'http://182.38.24.70:8118'}
 
@@ -184,13 +186,26 @@ if __name__ == '__main__':
     # print(getYahooData())
     # print(IPAddressSearcher())
 
-    proxies=(IpTest(IPAddressSearcher()))
-    for p in proxies:
-        print(p)
-        try:
-            print(getYahooData(proxy=p))
-        except Exception as e:
-            print(e)
-            print('---------------------------------------------------------')
+    # proxies=(IpTest(IPAddressSearcher()))
+    # for p in proxies:
+    #     print(p)
+    #     try:
+    #         print(getYahooData(proxy=p))
+    #     except Exception as e:
+    #         print(e)
+    #         print('---------------------------------------------------------')
+
+
+    lis=[
+    {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36 OPR/39.0.2256.48'},
+    {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586'},
+
+    {'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'}
+    ]
+
+
+    for i in lis:
+        print(lis[random.randint(0,len(lis)-1)])
+
 
     time.sleep(5)

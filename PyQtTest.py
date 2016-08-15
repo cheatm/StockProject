@@ -5,8 +5,6 @@ import EconomicData
 from PyQt4 import QtGui,QtCore
 import HKStock,indicator
 
-
-
 class StockChart(QtGui.QMainWindow):
 
     xRay=[]
@@ -32,8 +30,8 @@ class StockChart(QtGui.QMainWindow):
 
     # default color
     colors=[
-        QtGui.QColor('cyan'),
         QtGui.QColor('white'),
+        QtGui.QColor('cyan'),
         QtGui.QColor('green'),
         QtGui.QColor('blue'),
         QtGui.QColor('gray'),
@@ -65,9 +63,13 @@ class StockChart(QtGui.QMainWindow):
         QtGui.QWidget.__init__(self,parent)
 
         self.xCounts=(int)(self.width()*self.alphaX)
+        self.xMove=0
+
         self.command={
             QtCore.Qt.Key_Down:self.down,
-            QtCore.Qt.Key_Up:self.up
+            QtCore.Qt.Key_Up:self.up,
+            QtCore.Qt.Key_Left:self.left,
+            QtCore.Qt.Key_Right:self.right
             }
         # print(self.Data['tradeDate'])
         self.BGcolor= QtGui.QColor(0,0,0)
@@ -86,7 +88,12 @@ class StockChart(QtGui.QMainWindow):
             name='Line%s' % len(self.Graph[figure]['line'])
 
         if color is not None:
-            self.chartColor[name]=color
+            if type(color)==type([]):
+                self.chartColor[name]=QtGui.QColor(color[0],color[1],color[2])
+            elif type(color)==type(''):
+                self.chartColor[name]=QtGui.QColor(color)
+            else:
+                self.chartColor[name]=self.colors[len(self.Graph[figure]['line'])]
         else:
             self.chartColor[name]=self.colors[len(self.Graph[figure]['line'])]
 
@@ -100,9 +107,6 @@ class StockChart(QtGui.QMainWindow):
             self.xRay.extend(outxray)
             self.xRay.sort()
 
-        for s in args.keys():
-
-            pass
 
     def importCandle(self,name=None,candle=None,figure=0,color=None,main=False):
         while len(self.Graph)<=figure:
@@ -114,13 +118,39 @@ class StockChart(QtGui.QMainWindow):
             name='Candle%s' % len(self.Graph[figure]['candle'])
 
         if color is not None:
-            self.chartColor[name]=color
+
+            if type(color)==type([]):
+                self.chartColor[name]=QtGui.QColor(color[0],color[1],color[2])
+            elif type(color)==type(''):
+                self.chartColor[name]=QtGui.QColor(color)
+            else:
+                self.chartColor[name]=self.colors[len(self.Graph[figure]['candle'])]
         else:
             self.chartColor[name]=self.colors[len(self.Graph[figure]['candle'])]
 
         self.Graph[figure]['candle'][name]=candle
 
-        # print(self.Graph[figure]['candle'][name])
+        def outXRay(x):
+            return x not in self.xRay
+
+        outxray=list(filter(outXRay,candle[0]))
+        if len(outxray)>0:
+            self.xRay.extend(outxray)
+            self.xRay.sort()
+
+    def left(self):
+        if self.xMove+self.xCounts<len(self.xRay):
+            self.xMove=self.xMove+1
+            self.repaint()
+
+
+
+    def right(self):
+        if self.xMove-1>=0:
+            self.xMove=self.xMove-1
+            self.repaint()
+
+
 
     def down(self):
         self.alphaX*=0.8
@@ -216,18 +246,29 @@ class StockChart(QtGui.QMainWindow):
         qp.drawLine(QtCore.QPoint(0,startY),QtCore.QPoint(self.width(),startY))
         qp.drawLine(QtCore.QPoint(self.areaWidth,startY),QtCore.QPoint(self.areaWidth,startY+self.GHights[num]))
 
+        def func(dic):
+            l=0
+            if type(dic)==type({}):
+                for d in dic.values():
+                    l=l+func(d)
+            elif type(dic)==type([]):
+                return len(dic)
+            return (l)
+
         qp.scale(1,-1)
         qp.translate(0,-startY-height)
 
-        YR=self.Yrange(num)
+        if func(self.ShownGraph[num])>=2:
 
-        self.YR[num]=YR
+            YR=self.Yrange(num)
 
-        self.ymodify[num]=(YR[0]-YR[1])/height
+            self.YR[num]=YR
 
-        # draw charts
-        self.drawLines(event,qp,num)
-        self.drawCandles(event,qp,num)
+            self.ymodify[num]=(YR[0]-YR[1])/height
+
+            # draw charts
+            self.drawLines(event,qp,num)
+            self.drawCandles(event,qp,num)
 
         qp.scale(1,-1)
 
@@ -263,18 +304,18 @@ class StockChart(QtGui.QMainWindow):
 
     yLnumber={}
 
-    def setYlabel(self,value=None,count=None,num=0,):
+    def setYlabel(self,value=None,count=None,figure=0,):
         if value is not None:
-            if num not in self.yLabel.keys():
-                self.yLabel[num]=[value]
+            if figure not in self.yLabel.keys():
+                self.yLabel[figure]=[value]
             else:
-                self.yLabel[num].append(value)
+                self.yLabel[figure].append(value)
 
         if count is not None:
-            if num not in self.yLnumber.keys():
-                self.yLnumber[num]=count
+            if figure not in self.yLnumber.keys():
+                self.yLnumber[figure]=count
             else:
-                self.yLnumber[num]=count
+                self.yLnumber[figure]=count
 
     def drawYaxis(self,event,qp,num=0,lines=2):
         R=self.YR[num][0]-self.YR[num][1]
@@ -303,6 +344,8 @@ class StockChart(QtGui.QMainWindow):
 
         pass
 
+
+
     def importExtraLine(self,point1,point2,num=0):
         while len(self.extraLines)<=num:
             self.extraLines.append([])
@@ -325,18 +368,33 @@ class StockChart(QtGui.QMainWindow):
                     return (lis.index(value))
             return (-1)
 
-        for ct in self.ShownGraph[num].values():
-            for name in ct.keys():
-                qp.setPen(self.chartColor[name])
-                qp.setFont(font)
+        if x is not None:
+            for ct in self.ShownGraph[num].values():
+                for name in ct.keys():
+                    qp.setPen(self.chartColor[name])
+                    qp.setFont(font)
 
-                label="%s:" % name
+                    label="%s:" % name
 
-                for v in ct[name][1:]:
-                    label=label+str(v[ findIndex(ct[name][0],x) ])+" "
+                    for v in ct[name][1:]:
+                        label=label+str(v[ findIndex(ct[name][0],x) ])+" "
 
-                qp.drawText(c,y+size+2,label)
-                c=c+size*len(label)*4/5
+                    qp.drawText(c,y+size+2,label)
+                    c=c+size*len(label)*4/5
+        else:
+            for ct in self.Graph[num].values():
+                for name in ct.keys():
+                    qp.setPen(self.chartColor[name])
+                    qp.setFont(font)
+
+                    label="%s:" % name
+
+                    for v in ct[name][1:]:
+                        label=label+str(v[ -1 ])+" "
+
+                    qp.drawText(c,y+size+2,label)
+                    c=c+size*len(label)*4/5
+
 
 
 
@@ -349,28 +407,37 @@ class StockChart(QtGui.QMainWindow):
 
             if type=='line':
                 for name in g[type].keys():
-                    maxY.append(max( g[type][name][1]))
-                    minY.append(min( g[type][name][1]))
+                    if len(g[type][name])>=2:
+                        maxY.append(max( g[type][name][1]))
+                        minY.append(min( g[type][name][1]))
             if type=='candle':
                 # print(type)
                 for name in g[type].keys():
-                    maxY.append(max( g[type][name][2]))
-                    minY.append(min( g[type][name][3]))
+                    if len(g[type][name])>=2:
+                        maxY.append(max( g[type][name][2]))
+                        minY.append(min( g[type][name][3]))
                     # print(maxY)
 
-        return [max(maxY),min(minY)]
+        if len(maxY) and len(minY):
+            return [max(maxY),min(minY)]
+        else :
+            return [1,0]
 
 
     def defineRange(self):
-        if self.xCounts>len(self.xRay):
-            self.xCounts=len(self.xRay)
-        leftX=self.xRay[-self.xCounts]
-        rightX=self.xRay[-1]
+        if self.xCounts+self.xMove>len(self.xRay):
+            self.xCounts=len(self.xRay)-self.xMove
+        leftX=self.xRay[-self.xCounts-self.xMove]
+        rightX=self.xRay[-1-self.xMove]
         self.XR=[rightX,leftX]
         self.xmodify=(rightX-leftX)/self.areaWidth
 
-        shownXray=self.xRay[-self.xCounts:]
-        self.shownX={}
+        shownXray=[]
+        if self.xMove==0:
+            shownXray=self.xRay[-self.xCounts-self.xMove:]
+        else :
+            shownXray=self.xRay[-self.xCounts-self.xMove:-self.xMove]
+        self.shownX={0:0}
         for x in range(0,len(shownXray)):
             self.shownX[shownXray[x]]=(x+0.5)*self.areaWidth/len(shownXray)
             pass
@@ -401,8 +468,9 @@ class StockChart(QtGui.QMainWindow):
                     self.ShownGraph[gn][l][name]=[]
 
                     for data in g[l][name]:
-                        self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]+1])
+                        if None not in xrange:
 
+                            self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]+1])
 
             gn=gn+1
 
@@ -433,7 +501,7 @@ class StockChart(QtGui.QMainWindow):
     def keyPressEvent(self, event):
 
         if event.key() in self.command.keys():
-            # print((event.key()))
+
             self.command[event.key()]()
 
 
@@ -488,11 +556,15 @@ class StockChart(QtGui.QMainWindow):
         for k in Line.keys():
 
             v=Line[k]
+            if len(v)==0:
+                continue
+
             points=[]
 
             x,y=0,0
 
             self.Points[k]={'x':[],'y':[]}
+
             for i in range(0,len(v[0])):
                 x=self.shownX[v[0][i]]
                 # x=(v[0][i]-self.XR[1])/self.xmodify

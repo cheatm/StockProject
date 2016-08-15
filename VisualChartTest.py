@@ -8,18 +8,18 @@ def showChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=StockChart()
 
-    HSI=HKStock.readIndexData(HKStock.HKindex[0],True)
+    HSI=HKStock.readIndexData(HKStock.HKindex[0],False)
     date=[]
     for d in HSI.tradeDate:
         date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
 
-    stockChart.importCandle(name=HKStock.HKindex[0],candle=[
+    stockChart.importCandle(name=HKStock.HKindex[0]+'candle',candle=[
         date,HSI.openIndex.tolist(),HSI.highestIndex.tolist(),HSI.lowestIndex.tolist(),HSI.closeIndex.tolist()
-    ])
+    ],color='white')
 
     for i in range(0,6):
 
-        data=HKStock.readIndexData(HKStock.HKindex[i],update=True)
+        data=HKStock.readIndexData(HKStock.HKindex[i],update=False)
 
         ind=indicator.MOMENTUM(data,60,'closeIndex')
 
@@ -42,23 +42,21 @@ def showChart():
         date.append(t )
         RmF.append(rf)
         HmL.append(hl)
+    stockChart.setYlabel(100,figure=1)
+    stockChart.setYlabel(110,figure=1)
 
-    # print(time.localtime(date[-1]))
-
-    zero=[]
-    for d in date:
-        zero.append(0)
     stockChart.importLine('Raise-Fall',line=[
         date,RmF
     ],figure=2)
 
-    stockChart.setYlabel(0,num=2)
+    stockChart.setYlabel(0,figure=2)
     stockChart.importLine('NewHigh-NewLow',line=[
         date,HmL
     ],figure=3)
+    stockChart.setYlabel(0,figure=3)
 
 
-    stockChart.importExtraLine([date[-5],0],[date[-1],2],3)
+    # stockChart.importExtraLine([date[-5],0],[date[-1],2],3)
 
     stockChart.show()
     sys.exit(app.exec_())

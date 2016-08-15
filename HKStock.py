@@ -1,11 +1,15 @@
 import pandas
 import tushare as ts
-import  time
+import time,os
 
+folder='Data'
 
 HKindex=['HSI','HSCEI','HSC','HSF','HSCCI','HSP','HSU']
 mkt=ts.Market()
 
+def createFolder(folder):
+    if not os.path.exists(folder):
+        os.mkdir(folder)
 
 def setToken(token):
     ts.set_token(token)
@@ -17,22 +21,26 @@ def getIndexData(tick):
 
     return(data)
 
-def readIndexData(tick,update=False):
-    data=pandas.read_excel('%s.xlsx' % tick)
+def readIndexData(tick,update=False,f=folder):
+    createFolder(f)
+    path='%s/%s.xlsx' % (f,tick)
+    if os.path.exists(path):
 
-    if update :
-        lastDate = data.tradeDate.tolist()[-1]
-        ld=time.mktime(time.strptime(lastDate,'%Y-%m-%d'))
-        ct=time.localtime()
-        ct=time.strftime('%Y-%m-%d',ct)
-        ct=time.strptime(ct,'%Y-%m-%d')
-        ct=time.mktime(ct)
-        if ct>ld:
-            data=getIndexData(tick)
+        data=pandas.read_excel(path)
 
-        data.to_excel('%s.xlsx' % tick)
+        if update :
+            lastDate = data.tradeDate.tolist()[-1]
+            ld=time.mktime(time.strptime(lastDate,'%Y-%m-%d'))
+            ct=time.localtime()
+            ct=time.strftime('%Y-%m-%d',ct)
+            ct=time.strptime(ct,'%Y-%m-%d')
+            ct=time.mktime(ct)
+            if ct>ld:
+                data=getIndexData(tick)
 
-    return(data)
+            data.to_excel(path)
+
+        return(data)
 
 def getStockData():
     print('Requiring stock data')
@@ -44,19 +52,13 @@ def getStockData():
 if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
 
-    # for i in HKindex:
-    #
-    #     indexData=getIndexData(i)
-    #
-    #     indexData.to_excel('%s.xlsx' % i)
-    # # indexData=pandas.read_excel('%s.xlsx' % HKindex[1])
-    #
-    #
-    # print(indexData)
+    for i in HKindex:
+        print(readIndexData(i,update=True))
+
 
 
 
     # print(getStockData())
     # print(ts.get_token())
-    print(readIndexData(HKindex[1]))
+
 
