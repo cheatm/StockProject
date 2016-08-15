@@ -1,6 +1,6 @@
 import pandas
 import tushare as ts
-import time,os
+import time,os,requests
 
 folder='Data'
 
@@ -48,17 +48,15 @@ def getStockData():
     data=mkt.MktHKEqud(tradeDate='2016-08-10')
     return (data)
 
+def getHKStockData():
+    url='http://table.finance.yahoo.com/table.csv?s=0700.hk'
+
+    data=requests.get(url)
+
+    print(data.text)
 
 if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
 
-    for i in HKindex:
-        print(readIndexData(i,update=True))
-
-
-
-
-    # print(getStockData())
-    # print(ts.get_token())
-
+    getHKStockData()
 
