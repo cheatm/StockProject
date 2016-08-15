@@ -402,7 +402,7 @@ class StockChart(QtGui.QMainWindow):
 
                     for data in g[l][name]:
                         self.ShownGraph[gn][l][name].append(data[xrange[0]:xrange[1]+1])
-                        
+
 
             gn=gn+1
 
