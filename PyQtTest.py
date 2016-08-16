@@ -78,7 +78,35 @@ class StockChart(QtGui.QMainWindow):
         # self.initBottoms()
 
     def importHistogram(self,name=None,hist=None,figure=0,color=None):
+        while len(self.Graph)<=figure:
+            self.Graph.append({'Hist':{}})
+            self.ShownGraph.append({'Hist':{}})
 
+        if name is None:
+            name='Hist%s' % len(self.Graph[figure]['Hist'])
+
+        if color is not None:
+            if type(color)==type([]):
+                self.chartColor[name]=QtGui.QColor(color[0],color[1],color[2])
+            elif type(color)==type(''):
+                self.chartColor[name]=QtGui.QColor(color)
+            else:
+                self.chartColor[name]=self.colors[len(self.Graph[figure]['Hist'])]
+        else:
+            self.chartColor[name]=self.colors[len(self.Graph[figure]['Hist'])]
+
+        if 'Hist' not in  self.Graph[figure].keys():
+            self.Graph[figure]['Hist']={}
+
+        self.Graph[figure]['Hist'][name]=hist
+
+        def outXRay(x):
+            return x not in self.xRay
+
+        outxray=list(filter(outXRay,hist[0]))
+        if len(outxray)>0:
+            self.xRay.extend(outxray)
+            self.xRay.sort()
         pass
 
     def importLine(self,name=None,line=None,figure=0,color=None,**args):
@@ -100,6 +128,9 @@ class StockChart(QtGui.QMainWindow):
                 self.chartColor[name]=self.colors[len(self.Graph[figure]['line'])]
         else:
             self.chartColor[name]=self.colors[len(self.Graph[figure]['line'])]
+
+        if 'line' not in self.Graph[figure].keys():
+            self.Graph[figure]['line']={}
 
         self.Graph[figure]['line'][name]=line
 
@@ -131,6 +162,9 @@ class StockChart(QtGui.QMainWindow):
                 self.chartColor[name]=self.colors[len(self.Graph[figure]['candle'])]
         else:
             self.chartColor[name]=self.colors[len(self.Graph[figure]['candle'])]
+
+        if 'candle' not in self.Graph[figure].keys():
+            self.Graph[figure]['candle']={}
 
         self.Graph[figure]['candle'][name]=candle
 
@@ -271,6 +305,7 @@ class StockChart(QtGui.QMainWindow):
             self.ymodify[num]=(YR[0]-YR[1])/height
 
             # draw charts
+            self.drawHist(event,qp,num)
             self.drawLines(event,qp,num)
             self.drawCandles(event,qp,num)
 
@@ -421,6 +456,13 @@ class StockChart(QtGui.QMainWindow):
                         maxY.append(max( g[type][name][2]))
                         minY.append(min( g[type][name][3]))
                     # print(maxY)
+            if type=='Hist':
+                for name in g[type].keys():
+                    if len(g[type][name])>=2:
+                        maxY.append(max( g[type][name][1]))
+                        minY.append(min( g[type][name][1]))
+                        if min(minY)>0:
+                            minY.append(0)
 
         if len(maxY) and len(minY):
             return [max(maxY),min(minY)]
@@ -518,7 +560,7 @@ class StockChart(QtGui.QMainWindow):
 
         for k in candle.keys():
             v=candle[k]
-            candlewidth=self.areaWidth/len(v[0])*0.9
+            candlewidth=self.areaWidth/len(v[0])*0.8
             qp.setPen(self.chartColor[k])
 
             for i in range(0,len(v[0])):
@@ -527,8 +569,6 @@ class StockChart(QtGui.QMainWindow):
                     single.append((v[s][i]-self.YR[num][1])/self.ymodify[num])
 
                 self.drawSingleCandle(event,qp,single,candlewidth,self.chartColor[k])
-
-
 
     def drawSingleCandle(self,event,qp,candle,width,color):
 
@@ -581,6 +621,28 @@ class StockChart(QtGui.QMainWindow):
             qp.setPen(self.chartColor[k])
             for p in range(1,len(points)):
                 qp.drawLine(points[p-1],points[p])
+
+    def drawHist(self,event,qp,num=0):
+
+        if 'Hist' not in self.ShownGraph[num].keys():
+            return (None)
+        hist=self.ShownGraph[num]['Hist']
+
+
+
+        for k in hist.keys():
+            v=hist[k]
+            qp.setPen(self.chartColor[k])
+            qp.setBrush(self.chartColor[k])
+
+            width=self.areaWidth/len(v[0])*0.6
+
+            for i in range(0,len(v[0])):
+                x=self.shownX[v[0][i]]
+                y=(v[1][i]-self.YR[num][1])/self.ymodify[num]
+
+                # qp.drawLine(QtCore.QPointF(x,y),QtCore.QPointF(x,0))
+                qp.drawRect(QtCore.QRectF(QtCore.QPointF(x-width/2,y),QtCore.QPointF(x+width/2,0)))
 
 
     def drawSquare(self,event,qp):

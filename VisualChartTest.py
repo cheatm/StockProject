@@ -75,13 +75,13 @@ def showStockChart():
     volume=DataTransform.pandas_to_listSeries(data,'Date','Volume')
     volume[0]=DataTransform.timeList_to_secondList(volume[0],'%Y-%m-%d')
 
-    stockChart.importLine('Volume',volume,figure=1,color='cyan')
+    # stockChart.importLine('Volume',volume,figure=1,color='cyan')
+    stockChart.importHistogram('Volume',volume,figure=1,color='cyan')
 
     stockChart.show()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
-    # showChart()
-    # listSeries=DataTransform.pandas_to_listSeries(HKStock.readIndexData(HKStock.HKindex[2],False),'tradeDate','closeIndex')
-    # print(DataTransform.timeList_to_secondList(listSeries[0],'%Y-%m-%d'))
-    showStockChart()
+    showChart()
+
+    # showStockChart()
