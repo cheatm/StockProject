@@ -8,7 +8,6 @@ def pandas_to_listSeries(pd,*columns):
     for c in columns:
         out.append(pd[c].tolist())
 
-
     return (out)
 
 def timeList_to_secondList(timeList,format):

@@ -77,6 +77,10 @@ class StockChart(QtGui.QMainWindow):
         # self.setToolTip('widget')
         # self.initBottoms()
 
+    def importHistogram(self,name=None,hist=None,figure=0,color=None):
+
+        pass
+
     def importLine(self,name=None,line=None,figure=0,color=None,**args):
 
         while len(self.Graph)<=figure:
@@ -108,7 +112,7 @@ class StockChart(QtGui.QMainWindow):
             self.xRay.sort()
 
 
-    def importCandle(self,name=None,candle=None,figure=0,color=None,main=False):
+    def importCandle(self,name=None,candle=None,figure=0,color=None):
         while len(self.Graph)<=figure:
             self.Graph.append({'candle':{}})
             self.ShownGraph.append({'candle':{}})

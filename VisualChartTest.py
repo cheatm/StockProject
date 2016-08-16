@@ -61,8 +61,27 @@ def showChart():
     stockChart.show()
     sys.exit(app.exec_())
 
+def showStockChart():
+    app=QtGui.QApplication(sys.argv)
+    stockChart=StockChart()
+
+    code='2318.hk'
+    data=HKStock.readStockData(code,db=HKStock.dbPath)
+    candle=DataTransform.pandas_to_listSeries(data,'Date','Open','High','Low','Close')
+    candle[0]=DataTransform.timeList_to_secondList(candle[0],'%Y-%m-%d')
+
+    stockChart.importCandle(code,candle)
+
+    volume=DataTransform.pandas_to_listSeries(data,'Date','Volume')
+    volume[0]=DataTransform.timeList_to_secondList(volume[0],'%Y-%m-%d')
+
+    stockChart.importLine('Volume',volume,figure=1,color='cyan')
+
+    stockChart.show()
+    sys.exit(app.exec_())
 
 if __name__ == '__main__':
-    showChart()
+    # showChart()
     # listSeries=DataTransform.pandas_to_listSeries(HKStock.readIndexData(HKStock.HKindex[2],False),'tradeDate','closeIndex')
     # print(DataTransform.timeList_to_secondList(listSeries[0],'%Y-%m-%d'))
+    showStockChart()
