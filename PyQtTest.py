@@ -635,14 +635,17 @@ class StockChart(QtGui.QMainWindow):
             qp.setPen(self.chartColor[k])
             qp.setBrush(self.chartColor[k])
 
-            width=self.areaWidth/len(v[0])*0.6
+            width=self.areaWidth/len(v[0])*0.5
 
             for i in range(0,len(v[0])):
                 x=self.shownX[v[0][i]]
                 y=(v[1][i]-self.YR[num][1])/self.ymodify[num]
 
                 # qp.drawLine(QtCore.QPointF(x,y),QtCore.QPointF(x,0))
-                qp.drawRect(QtCore.QRectF(QtCore.QPointF(x-width/2,y),QtCore.QPointF(x+width/2,0)))
+                if width>=1:
+                    qp.drawRect(QtCore.QRectF(QtCore.QPointF(x-width/2,y),QtCore.QPointF(x+width/2,0)))
+                else :
+                    qp.drawLine(QtCore.QPointF(x,y),QtCore.QPointF(x,0))
 
 
     def drawSquare(self,event,qp):
