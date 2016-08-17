@@ -97,7 +97,7 @@ def getYahooData(proxy=None):
     {'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'}
     ]
 
-    header=UAlist[0]
+    header=UAlist[random.randint(0,2)]
 
     # proxy={'http': 'http://182.38.24.70:8118'}
 
