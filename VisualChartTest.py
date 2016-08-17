@@ -12,16 +12,12 @@ def showChart():
     HSI=DataTransform.pandas_to_listSeries(HSI,'tradeDate','openIndex','highestIndex','lowestIndex','closeIndex')
     HSI[0]=DataTransform.timeList_to_secondList(HSI[0],'%Y-%m-%d')
 
-    code='2318.hk'
-    data=HKStock.readStockData(code,db=HKStock.dbPath)
-    candle=DataTransform.pandas_to_listSeries(data,'Date','Open','High','Low','Close')
-    candle[0]=DataTransform.timeList_to_secondList(candle[0],'%Y-%m-%d')
-    stockChart.importCandle(code,candle,color='cyan')
+
     # date=[]
     # for d in HSI.tradeDate:
     #     date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
 
-    # stockChart.importCandle(name=HKStock.HKindex[0]+'candle',candle=HSI,color='white')
+    stockChart.importCandle(name=HKStock.HKindex[0]+'candle',candle=HSI,color='white')
 
     for i in range(0,6):
 

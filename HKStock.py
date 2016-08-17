@@ -142,7 +142,7 @@ def readStockData(name,db=None,con=None):
         con=sqlite3.connect(db)
         close=True
 
-    data=pandas.read_sql('''select * FROM "%s"''' % name,con,index_col='index')
+    data=pandas.read_sql('''select * FROM "%s"''' % name,con)
 
     if(close):
         con.close()
