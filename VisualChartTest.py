@@ -65,21 +65,21 @@ def showStockChart():
 
     # **********************************************************************************
     # code:代码
-    code='2318.hk'
+    code='0700.hk'
     # 读取股票数据
     data=HKStock.readStockData(code,db=HKStock.dbPath)
     # 将数据转换成candle格式:[[],[],[],[],[]]
-    candle=DataTransform.pandas_to_listSeries(data,'Date','Open','High','Low','Close')
+    candle=DataTransform.pandas_to_listSeries(data,'time','Open','High','Low','Close')
     # 将时间由string装成数字
-    candle[0]=DataTransform.timeList_to_secondList(candle[0],'%Y-%m-%d')
+    # candle[0]=DataTransform.timeList_to_secondList(candle[0],'%Y-%m-%d')
 
     # 蜡烛图
     stockChart.importCandle(code,candle)
 
     # 将数据转化成柱图格式：[[],[]]
-    volume=DataTransform.pandas_to_listSeries(data,'Date','Volume')
+    volume=DataTransform.pandas_to_listSeries(data,'time','Volume')
     # 转换时间
-    volume[0]=DataTransform.timeList_to_secondList(volume[0],'%Y-%m-%d')
+    # volume[0]=DataTransform.timeList_to_secondList(volume[0],'%Y-%m-%d')
 
     # stockChart.importLine('Volume',volume,figure=1,color='cyan')
     # 柱图
