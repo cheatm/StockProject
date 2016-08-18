@@ -91,6 +91,6 @@ def showStockChart():
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
-    # showChart()
+    showChart()
     #
-    showStockChart()
+    # showStockChart()

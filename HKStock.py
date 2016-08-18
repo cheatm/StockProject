@@ -147,14 +147,6 @@ def readStockData(name,db=None,con=None):
     if(close):
         con.close()
 
-    # for i in data.index:
-    #     for c in data.columns:
-    #         e=data.get_value(i,c)
-    #
-    #         if c != 'Date':
-    #
-    #             data.set_value(i,c,float(e))
-
     return (data)
 
 
@@ -190,31 +182,36 @@ def changeDBdata(table,db=None,con=None):
 
 
     data=pandas.read_sql('''select * FROM "%s"''' % table,con,index_col='Date')
-    print(table)
-    print(data)
-    # Time=[]
-    # for d in data.index:
-    #     Time.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
-    #
-    #
-    # data.insert(0,'time',Time)
-    # data.drop(['index'],axis=1,inplace=True)
-    # data.to_sql(table,con,if_exists='replace')
-
+    path='%s/%s.db' % (folder,table)
+    newdb=sqlite3.connect(path)
+    data.to_sql('Day',newdb,if_exists='replace')
+    print(path)
     # print(data)
+
+
+
     if close:
         con.close()
 
-def updateStockData(code,db=None,con=None):
+def updateStockData(code,table='Day',con=None):
+    '''
+
+    :param code:
+    :param table:
+    :param con:
+    :return:
+    '''
+    path='%s/%s.db' % (folder,code)
+    print(path)
     close=False
     if con==None:
 
-        con=sqlite3.connect(db)
+        con=sqlite3.connect(path)
         close=True
 
-    # data=data=pandas.read_sql('''select * FROM "%s"''' % code,con)
-    last=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % code).fetchone()
+    last=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % table).fetchone()
     today=time.strftime('%Y-%m-%d',time.localtime())
+    print(last)
 
     if today==last[0]:
         return (0)
@@ -222,27 +219,139 @@ def updateStockData(code,db=None,con=None):
     lastdate=last[0].split('-')
     try:
         update=getHKStockData(code,a=int(lastdate[1])-1,b=int(lastdate[2])+1,c=int(lastdate[0]))
-        update.to_sql(code,con,if_exists='append')
-        print(pandas.read_sql('select * from "%s"' % code,con))
+        print(update)
+        update.to_sql(table,con,if_exists='append')
+        # print(pandas.read_sql('select * from "%s"' % code,con))
     except Exception as e:
         print(e)
 
     if close:
         con.close()
 
+def getBasicData(name,type=0):
+    '''
+
+    :param name:
+    :param type:
+        0:'financial-summary'
+        1:'income-statement'
+        2:'balance-sheet'
+        3:'cash-flow'
+    :return:
+    '''
+
+    sheetType=[
+        'financial-summary','income-statement','balance-sheet','cash-flow'
+    ]
+
+    url='http://www.investing.com%s-%s' % (name,sheetType[type])
+    header=[
+        {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36 OPR/39.0.2256.48'},
+        {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586'},
+        {'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'}
+    ]
+
+    page=requests.get(url,headers=header[random.randint(0,2)])
+
+    if type>0:
+        # 报表
+        tablePattern='''<div id="rrtable">(.*?)<div class="arial'''
+        table=re.findall(tablePattern,page.text,re.S)
+
+        timePattern='''<th>.*?<span class="bold">(.*?)</span>.*?<div class=.*?>(.*?)</div>'''
+        Time=re.findall(timePattern,table[0],re.S)
+        for t in range(0,len(Time)):
+            Time[t]='%s/%s' % (Time[t][0],Time[t][1])
+        Time.insert(0,'label')
+
+        dataPattern='''<tr class.*?>.*?<td>.*?<span class.*?>(.*?)<.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?<td>(.*?)</td>.*?<td>(.*?)</td>'''
+        data=re.findall(dataPattern,table[0],re.S)
+
+        out=pandas.DataFrame(data,columns=Time)
+        out.set_index('label',inplace=True)
+
+        time.sleep(random.random()*3)
+        return (out)
+
+    else:
+        # Summary
+        pattern='''<div class="infoLine">.*?<span class="float_lang.*?">(.*?)</span>.*?<span class="float_lang.*?">(.*?)</span>'''
+        summary=re.findall(pattern,page.text,re.S)
+
+        month=time.strftime("%Y/%m",time.localtime())
+        summary=pandas.DataFrame(summary,columns=['time',month])
+        summary.set_index('time',inplace=True)
+        for i in summary.index:
+            value=summary.get_value(i,month)
+            try:
+                if '%' in value:
+                    n=value.split('%')
+                    summary.set_value(i,month,float(n[0])/100)
+                else:
+                    if '-' not in value:
+                        summary.set_value(i,month,float(value))
+            except Exception as e:
+                print(e)
+
+        time.sleep(random.randint(0,2)+random.random())
+        return (summary.T)
+
+def saveHKBasic(code,data,db=None,con=None):
+    path='%s/%s.db' % (folder,code)
+    print(path)
+    close=False
+    if con==None:
+
+        con=sqlite3.connect(path)
+        close=True
+
+    data.to_sql('basic',con,if_exists='replace')
+    print(data)
+
+    if close:
+        con.close()
+
+
+def getInvestingStockAddress(text):
+
+    pattern='''<td data-column-name="name_trans".*?href="(.*?)".*?>(.*?)</a>.*?"viewData.symbol".*?>(.*?)</td>'''
+    data=re.findall(pattern,text,re.S)
+    address=pandas.DataFrame(data,columns=['url','name','code'])
+    address.set_index('code').to_csv('%s/InvestingURL.csv' % folder)
+    return(address.set_index('code'))
+
 
 if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
-    code='0001.hk'
 
+    #
+    # con=sqlite3.connect(dbPath)
+    # table_names=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
+    #
+    #
+    # for name in table_names[1:]:
+    #     updateStockData(name[0])
+    #
+    # con.close()
+
+    # print(getBasicData('tencent-holdings-hk'))
+    address=pandas.read_csv('%s/InvestingURL.csv' % folder)
+    address.set_index('code',inplace=True)
     con=sqlite3.connect(dbPath)
     table_names=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
 
-    # updateStockData(table_names[0][0],con=con)
-    # changeDBdata(table_names[0][0],con=con)
+    for name in table_names:
+        code=name[0].split('.')[0]
+        try:
+            # print(address.get_value(int(code),'url'))
+            basic=getBasicData(address.get_value(int(code),'url'),0)
+            saveHKBasic(name[0],basic)
+            # print(basic)
 
-    con.close()
+
+        except Exception as e:
+            print(name[0],e)
 
 
-    # saveHKOption()
+
 
