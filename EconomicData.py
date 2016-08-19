@@ -4,6 +4,7 @@ import pandas
 import time
 import random
 
+
 def getNonFarmPayroll():
     nfp=requests.get('https://www.oanda.com/forex-trading/analysis/economic-indicators/united-states/employment/non-farm-payroll')
     patternTable='''Date</th>
