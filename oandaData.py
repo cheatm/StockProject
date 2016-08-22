@@ -1,5 +1,5 @@
 from pyoanda import Client, TRADE
-import pandas,time
+import pandas,time,datetime
 import sqlite3
 
 folder='Oanda'
@@ -17,6 +17,7 @@ def getInstrumentHistory(instrument,candle_format="midpoint",granularity='D', co
             weekly_alignment="Monday", start=None,end=None,client=defautClient,recursion=False):
 
     pdata=None
+    print(start)
     if recursion:
         data=client.get_instrument_history(
                 instrument=instrument,
@@ -27,9 +28,10 @@ def getInstrumentHistory(instrument,candle_format="midpoint",granularity='D', co
                 alignment_timezone=alignment_timezone,
                 weekly_alignment=weekly_alignment,
                 start=start,
-                end=None
+                end=end
             )
         pdata=pandas.DataFrame(data['candles'])
+
 
         pass
     else:
@@ -46,12 +48,15 @@ def getInstrumentHistory(instrument,candle_format="midpoint",granularity='D', co
                 end=end
             )
             pdata=pandas.DataFrame(data['candles'])
+
         except Exception as e:
             print(e)
-            data=getInstrumentHistory(instrument,candle_format=candle_format,granularity=granularity, count=5000,
-                                    daily_alignment=daily_alignment, alignment_timezone=alignment_timezone,
-                                    weekly_alignment=weekly_alignment, start=start,end=end,client=client,recursion=True)
-            return(data)
+            if '5000' in str(e):
+                data=getInstrumentHistory(instrument,candle_format=candle_format,granularity=granularity, count=5000,
+                                        daily_alignment=daily_alignment, alignment_timezone=alignment_timezone,
+                                        weekly_alignment=weekly_alignment, start=start,end=None,client=client,recursion=True)
+                return(data)
+            else : return 0
 
 
 
@@ -86,19 +91,13 @@ def getInstrumentHistory(instrument,candle_format="midpoint",granularity='D', co
 
         oldendtime=pdata.index.tolist()[-1]
 
-        print(time.localtime(oldendtime))
-
         if len(pdata.index)==5000:
 
             new = getInstrumentHistory(instrument,candle_format=candle_format,granularity=granularity, count=5000,
                                     daily_alignment=daily_alignment, alignment_timezone=alignment_timezone,
-                                    weekly_alignment=weekly_alignment, start=time.localtime(oldendtime),end=end,client=client,recursion=True)
-
+                                    weekly_alignment=weekly_alignment, start=datetime.date.fromtimestamp(oldendtime),end=end,client=client,recursion=True)
 
             return pdata.append(new)
-
-        else: return pdata
-
 
     return (pdata)
 
@@ -128,7 +127,7 @@ def save_sql(data,table,dbpath=None,con=None,if_exists='replace'):
 
 
     if close:
-        print(path)
+        print(dbpath)
         con.close()
 
 def readInsts():
@@ -143,18 +142,33 @@ def readInsts():
 
     return out
 
+def test(instrument,start=None,end=None,count=None,client=defautClient):
+    print(start)
+    data=client.get_instrument_history(instrument, candle_format="midpoint",
+                               granularity='D',count=count,daily_alignment=0,
+                               weekly_alignment="Monday", alignment_timezone='Asia/Hong_Kong',
+                               start=start
+                               )
+
+    return pandas.DataFrame(data['candles'])
+
 
 if __name__ == '__main__':
-    end=time.localtime()
-    start=time.strptime('2000-01-01','%Y-%m-%d')
+    end=datetime.date.today()
+
+    start=datetime.date(2001,5,5)
+
     granularity=['M15','H1','H4','D','W','M']
     Insts=readInsts()
-    c=0
+    i=Insts[2]
+    g=granularity[1]
+    # con=sqlite3.connect('%s/%s.db' % (folder,i))
 
-    for i in Insts[Insts.index('HK33_HKD'):]:
+
+    for i in Insts:
         con=sqlite3.connect('%s/%s.db' % (folder,i))
         print(i)
-        for g in granularity[2:]:
+        for g in granularity[0:2]:
             print(g)
             path='%s/%s.db' % (folder,i)
             save_sql(getInstrumentHistory(i,start=start,end=end,candle_format='bidask',granularity=g),g,con=con)
