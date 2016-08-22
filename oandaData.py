@@ -12,7 +12,7 @@ defautClient= Client(
         )
 
 
-def getInstrumentHistory(instrument,candle_format="midpoint",granularity='D', count=None,
+def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', count=None,
             daily_alignment=None, alignment_timezone=None,
             weekly_alignment="Monday", start=None,end=None,client=defautClient,recursion=False):
 
@@ -101,6 +101,26 @@ def getInstrumentHistory(instrument,candle_format="midpoint",granularity='D', co
 
     return (pdata)
 
+def update(dbpath,*granularity,instrument=None):
+    con=sqlite3.connect(dbpath)
+
+    if instrument is None:
+        instrument=Split(dbpath,['/','.'])[-2]
+
+    if len(granularity)==0:
+        granularity=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
+        for i in range(0,len(granularity)):
+            granularity[i]=granularity[i][0]
+
+    for g in granularity:
+        lastRecord=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % g).fetchone()
+        startTime=datetime.date.fromtimestamp(lastRecord[0])
+        new=getInstrumentHistory(instrument,granularity=g,start=startTime,end=datetime.date.today())
+        print(new)
+
+
+    con.close()
+
 
 def Split(word,seps):
 
@@ -154,23 +174,25 @@ def test(instrument,start=None,end=None,count=None,client=defautClient):
 
 
 if __name__ == '__main__':
-    end=datetime.date.today()
+    # end=datetime.date.today()
+    #
+    # start=datetime.date(2001,5,5)
+    #
+    # granularity=['M15','H1','H4','D','W','M']
+    # Insts=readInsts()
+    # i=Insts[2]
+    # g=granularity[1]
+    #
+    #
+    #
+    # for i in Insts:
+    #     con=sqlite3.connect('%s/%s.db' % (folder,i))
+    #     print(i)
+    #     for g in granularity[0:2]:
+    #         print(g)
+    #         path='%s/%s.db' % (folder,i)
+    #         save_sql(getInstrumentHistory(i,start=start,end=end,candle_format='bidask',granularity=g),g,con=con)
+    #     con.close()
 
-    start=datetime.date(2001,5,5)
-
-    granularity=['M15','H1','H4','D','W','M']
-    Insts=readInsts()
-    i=Insts[2]
-    g=granularity[1]
-    # con=sqlite3.connect('%s/%s.db' % (folder,i))
-
-
-    for i in Insts:
-        con=sqlite3.connect('%s/%s.db' % (folder,i))
-        print(i)
-        for g in granularity[0:2]:
-            print(g)
-            path='%s/%s.db' % (folder,i)
-            save_sql(getInstrumentHistory(i,start=start,end=end,candle_format='bidask',granularity=g),g,con=con)
-        con.close()
-
+    path='E:/StockProject/Oanda/GBP_USD.db'
+    update(path,'H4')
