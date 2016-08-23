@@ -4,6 +4,7 @@ import sqlite3
 
 folder='Oanda'
 instruments='Instrument.txt'
+granularity=['M15','H1','H4','D','W','M']
 
 defautClient= Client(
             environment=TRADE,
@@ -13,7 +14,7 @@ defautClient= Client(
 
 
 def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', count=None,
-            daily_alignment=None, alignment_timezone=None,
+            daily_alignment=0, alignment_timezone='Etc/UTC',
             weekly_alignment="Monday", start=None,end=None,client=defautClient,recursion=False):
 
     pdata=None
@@ -90,12 +91,12 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
     if recursion:
 
         oldendtime=pdata.index.tolist()[-1]
-
+        startTime=datetime.datetime.fromtimestamp(oldendtime).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
         if len(pdata.index)==5000:
 
             new = getInstrumentHistory(instrument,candle_format=candle_format,granularity=granularity, count=5000,
                                     daily_alignment=daily_alignment, alignment_timezone=alignment_timezone,
-                                    weekly_alignment=weekly_alignment, start=datetime.date.fromtimestamp(oldendtime),end=end,client=client,recursion=True)
+                                    weekly_alignment=weekly_alignment, start=startTime,end=end,client=client,recursion=True)
 
             return pdata.append(new)
 
@@ -116,7 +117,7 @@ def update(dbpath,*granularity,instrument=None):
         lastRecord=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % g).fetchone()
         startTime=datetime.date.fromtimestamp(lastRecord[0])
         new=getInstrumentHistory(instrument,granularity=g,start=startTime,end=datetime.date.today())
-        print(new)
+        new.to_sql(g,con,if_exists='append')
 
 
     con.close()
@@ -174,25 +175,30 @@ def test(instrument,start=None,end=None,count=None,client=defautClient):
 
 
 if __name__ == '__main__':
-    # end=datetime.date.today()
-    #
-    # start=datetime.date(2001,5,5)
-    #
-    # granularity=['M15','H1','H4','D','W','M']
-    # Insts=readInsts()
-    # i=Insts[2]
-    # g=granularity[1]
-    #
-    #
-    #
-    # for i in Insts:
-    #     con=sqlite3.connect('%s/%s.db' % (folder,i))
-    #     print(i)
-    #     for g in granularity[0:2]:
-    #         print(g)
-    #         path='%s/%s.db' % (folder,i)
-    #         save_sql(getInstrumentHistory(i,start=start,end=end,candle_format='bidask',granularity=g),g,con=con)
-    #     con.close()
+    end=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
-    path='E:/StockProject/Oanda/GBP_USD.db'
-    update(path,'H4')
+    start=datetime.datetime(2001,1,1).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+
+    granularity=['M15','H1','H4','D','W','M']
+    Insts=readInsts()
+    i=Insts[2]
+    g=granularity[1]
+
+
+    path='E:/StockProject/Oanda'
+    for i in Insts:
+        dbpath='%s/%s.db' % (path,i)
+        print(dbpath)
+        con=sqlite3.connect(dbpath)
+
+        for g in granularity[4:]:
+            print(g)
+            # path='%s/%s.db' % (folder,i)
+            save_sql(getInstrumentHistory(i,start=start,end=end,candle_format='bidask',granularity=g),g,con=con)
+
+        con.close()
+
+    # path='E:/StockProject/Oanda/GBP_USD.db'
+    # update(path,'H4')
+    # end=datetime.datetime.now()
+

@@ -4,6 +4,7 @@ import time,os,requests,re
 import sqlite3,random
 
 folder='Data'
+folder2='E:/FinanceData/Data'
 DataBase='StockData.db'
 dbPath='%s/%s' % (folder,DataBase)
 
@@ -45,11 +46,6 @@ def readIndexData(tick,update=False,f=folder):
 
         return(data)
 
-def getStockData():
-    print('Requiring stock data')
-    # data=mkt.MktEqud(ticker='600000')
-    data=mkt.MktHKEqud(tradeDate='2016-08-10')
-    return (data)
 
 def getHKStockData(code,**f):
     '''
@@ -100,7 +96,7 @@ def getHKStockData(code,**f):
 
     return(out)
 
-def saveStockData(name,Data,db=None,con=None,if_exists='replace'):
+def saveStockData(table,Data,db=None,con=None,if_exists='replace'):
     '''
 
     :param name: name of data
@@ -121,13 +117,13 @@ def saveStockData(name,Data,db=None,con=None,if_exists='replace'):
         con=sqlite3.connect(db)
         close=True
 
-    Data.to_sql(name,con,if_exists=if_exists)
+    Data.to_sql(table,con,if_exists=if_exists)
 
     if(close):
         con.close()
 
 
-def readStockData(name,db=None,con=None):
+def readStockData(table,db=None,con=None):
     '''
 
     :param name: table name in the database
@@ -142,35 +138,13 @@ def readStockData(name,db=None,con=None):
         con=sqlite3.connect(db)
         close=True
 
-    data=pandas.read_sql('''select * FROM "%s"''' % name,con)
+    data=pandas.read_sql('''select * FROM "%s"''' % table,con)
 
     if(close):
         con.close()
 
     return (data)
 
-
-def saveHKOption(db=dbPath):
-    path='%s/%s' % (folder,'HK Option.xlsx')
-    table=pandas.read_excel(path,'Sheet1')
-
-    con=sqlite3.connect(dbPath)
-
-    for i in table['IB Symbol']:
-        if type(i)==type(0):
-            code=str(i)
-            while(len(code)<4):
-                code='%s%s' % (0,code)
-            code=code+'.hk'
-
-            print('collecting %s ' % code)
-            try:
-                saveStockData(code,getHKStockData(code),con=con)
-            except Exception as e:
-                print(e)
-
-            time.sleep(random.random()*2)
-    con.close()
 
 def changeDBdata(table,db=None,con=None):
     close=False
@@ -186,14 +160,19 @@ def changeDBdata(table,db=None,con=None):
     newdb=sqlite3.connect(path)
     data.to_sql('Day',newdb,if_exists='replace')
     print(path)
-    # print(data)
-
-
 
     if close:
         con.close()
 
-def updateStockData(code,table='Day',con=None):
+def updateAllStock(pathFolder):
+    table_names=open('ini/HKStockList.txt').read().split(',')
+
+    for name in table_names:
+         con=sqlite3.connect('%s/%s.db' % (pathFolder,name))
+         updateStockData(code=name[0],con=con)
+
+
+def updateStockData(code,table='Day',db=None,con=None):
     '''
 
     :param code:
@@ -201,12 +180,11 @@ def updateStockData(code,table='Day',con=None):
     :param con:
     :return:
     '''
-    path='%s/%s.db' % (folder,code)
-    print(path)
+
     close=False
     if con==None:
 
-        con=sqlite3.connect(path)
+        con=sqlite3.connect(db)
         close=True
 
     last=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % table).fetchone()
@@ -296,13 +274,12 @@ def getBasicData(name,type=0):
         time.sleep(random.randint(0,2)+random.random())
         return (summary.T)
 
-def saveHKBasic(code,data,db=None,con=None):
-    path='%s/%s.db' % (folder,code)
-    print(path)
+def saveHKBasic(data,db=None,con=None):
+
     close=False
     if con==None:
 
-        con=sqlite3.connect(path)
+        con=sqlite3.connect(db)
         close=True
 
     data.to_sql('basic',con,if_exists='replace')
@@ -324,34 +301,22 @@ def getInvestingStockAddress(text):
 if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
 
-    #
+
+    # address=pandas.read_csv('%s/InvestingURL.csv' % folder)
+    # address.set_index('code',inplace=True)
     # con=sqlite3.connect(dbPath)
     # table_names=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
     #
+    # for name in table_names:
+    #     code=name[0].split('.')[0]
+    #     try:
     #
-    # for name in table_names[1:]:
-    #     updateStockData(name[0])
+    #         basic=getBasicData(address.get_value(int(code),'url'),0)
+    #         saveHKBasic(name[0],basic)
     #
-    # con.close()
-
-    # print(getBasicData('tencent-holdings-hk'))
-    address=pandas.read_csv('%s/InvestingURL.csv' % folder)
-    address.set_index('code',inplace=True)
-    con=sqlite3.connect(dbPath)
-    table_names=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
-
-    for name in table_names:
-        code=name[0].split('.')[0]
-        try:
-            # print(address.get_value(int(code),'url'))
-            basic=getBasicData(address.get_value(int(code),'url'),0)
-            saveHKBasic(name[0],basic)
-            # print(basic)
-
-
-        except Exception as e:
-            print(name[0],e)
-
+    #     except Exception as e:
+    #         print(name[0],e)
+    pass
 
 
 
