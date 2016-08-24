@@ -22,30 +22,93 @@ def EMA(candle,period=12,price='close'):
     data.pop(0)
     return pandas.DataFrame(data,columns=['date','time','value'])
 
-def MACD(candle,fast=12,slow=26,signal=9):
-    print('Calulating MACD fast=%s slow=%s signal=%s' % (fast,slow,signal))
-    fastema=EMA(candle,fast)
-    slowema=EMA(candle,slow)
-    MACDline=fastema.value-slowema.value
-    MACDline.index=candle.index
+# def MACD(candle,fast=12,slow=26,signal=9):
+#     print('Calulating MACD fast=%s slow=%s signal=%s' % (fast,slow,signal))
+#     fastema=EMA(candle,fast)
+#     slowema=EMA(candle,slow)
+#     MACDline=fastema.value-slowema.value
+#     MACDline.index=candle.index
+#
+#     start=candle.index.tolist()[0]
+#     hist=[candle.get_value(start,'date'),candle.get_value(start,'time'),
+#            MACDline[start],MACDline[start],0] #date/time/MACDline/signalLine/Histogram
+#     histograms=[hist]
+#
+#     k=2/(signal+1)
+#     for i in candle.index:
+#         today=MACDline[i]
+#         signalLine=today*k+(1-k)*hist[3]
+#         hist=[candle.get_value(i,'date'),candle.get_value(i,'time'),
+#             MACDline[i],signalLine,MACDline[i]-signalLine]
+#         histograms.append(hist)
+#
+#     histograms.pop(0)
+#
+#
+#     return pandas.DataFrame(histograms,columns=['date','time','MACDLine','Signal','Histogram'])
 
-    start=candle.index.tolist()[0]
-    hist=[candle.get_value(start,'date'),candle.get_value(start,'time'),
-           MACDline[start],MACDline[start],0] #date/time/MACDline/signalLine/Histogram
-    histograms=[hist]
+def MA(time,price,period=60,matype=0,index=None):
+    ma=talib.MA(numpy.array(price),timeperiod=period,matype=matype)
+    data=pandas.DataFrame({'time':time,'MA':ma}).dropna()
 
-    k=2/(signal+1)
-    for i in candle.index:
-        today=MACDline[i]
-        signalLine=today*k+(1-k)*hist[3]
-        hist=[candle.get_value(i,'date'),candle.get_value(i,'time'),
-            MACDline[i],signalLine,MACDline[i]-signalLine]
-        histograms.append(hist)
+    if index is not None:
+        return data.set_index(index)
 
-    histograms.pop(0)
+    return data
 
+def MACD(time,price,fast=12,slow=26,signal=9,index=None):
+    input=numpy.array(price)
+    macd,signal,hist=talib.MACD(input,fastperiod=fast,slowperiod=slow,signalperiod=signal)
+    data=pandas.DataFrame({'time':time,'macd':macd,'signal':signal,'hist':hist}).dropna()
 
-    return pandas.DataFrame(histograms,columns=['date','time','MACDLine','Signal','Histogram'])
+    if index is not None:
+        return data.set_index(index)
+
+    return data
+
+def ATR(time,high,low,close,period=14,index=None):
+
+    atr=talib.ATR(numpy.array(high),numpy.array(low),numpy.array(close),timeperiod=period)
+    data=pandas.DataFrame({'ATR':atr,'time':time}).dropna()
+
+    if index is not None:
+        return data.set_index(index)
+
+    return data
+
+def ADX(time,high,low,close,period=14,index=None):
+
+    adx=talib.ADX(numpy.array(high),numpy.array(low),numpy.array(close),timeperiod=period)
+    data=pandas.DataFrame({'ADX':adx,'time':time}).dropna()
+
+    if index is not None:
+        return data.set_index(index)
+
+    return data
+
+def RSI(time,price,period=14,index=None):
+
+    rsi=talib.RSI(numpy.array(price),timeperiod=period)
+    data=pandas.DataFrame({'RSI':rsi,'time':time}).dropna()
+
+    if index is not None:
+        return data.set_index(index)
+
+    return data
+
+def Correlation(price1,price2,time=None,period=30):
+    if len(price1) != len(price2):
+        print('price1 and price2 are not in the same length')
+        return 0
+
+    corr=talib.CORREL(numpy.array(price1),numpy.array(price2),timeperiod=period)
+    data=pandas.DataFrame(corr,index=time).dropna()
+    # if time is not None and len(time)==len(price1):
+    #     data=pandas.DataFrame(corr,index=time).dropna()
+    #
+    #
+
+    return data
 
 
 def MACD_Analisys(candle):

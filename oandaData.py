@@ -2,6 +2,7 @@ from pyoanda import Client, TRADE
 from oandapy import oandapy
 import pandas,time,datetime
 import sqlite3
+import indicator
 
 
 folder='ini'
@@ -316,20 +317,13 @@ if __name__ == '__main__':
     #
     #     con.close()
 
-    for i in Insts:
-        dbpath='%s/%s.db' % (savePath,i)
-        con=sqlite3.connect(dbpath)
-        print(dbpath)
+    i=Insts[0]
+    data=read_sql('D',i)
+    # print(data)
+    # ma=indicator.RSI(data['time'],data['closeBid'],)
+    # atr=indicator.ADX(data['time'],high=data['highBid'],low=data['lowBid'],close=data['closeBid'],index='time')
+    corr=indicator.Correlation(data['closeBid'],data['openBid'])
 
-        cot=getCommitmentsOfTraders(i)
-        if cot is not 0:
-            save_sql(cot,'COT',con=con)
-
-
-        hpr=getHistoricalPositionRatios(i)
-        if hpr is not 0:
-            save_sql(hpr,'HPR',con=con)
-
-        con.close()
+    print(corr)
 
 
