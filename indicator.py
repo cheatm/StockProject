@@ -1,10 +1,9 @@
 import pandas
-import matplotlib.pyplot as plt
-import matplotlib.finance as finance
-import matplotlib.axis as axis
+import numpy,talib
+from talib import abstract
 import time,datetime
 
-
+folder='ini'
 fast=12
 slow=26
 
@@ -83,5 +82,4 @@ def MOMENTUM(candle,N,price='closePrice',dateIndex='tradeDate',timeFormat='%Y-%m
     return (pandas.DataFrame(data,columns=['time',dateIndex,'MOMENTUM']) )
 
 if __name__ == '__main__':
-    print('main')
-
+    pass

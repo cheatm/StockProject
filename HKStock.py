@@ -3,6 +3,7 @@ import tushare as ts
 import time,os,requests,re
 import sqlite3,random
 
+
 folder='Data'
 folder2='E:/FinanceData/Data'
 DataBase='StockData.db'

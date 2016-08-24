@@ -1,11 +1,16 @@
 from pyoanda import Client, TRADE
+from oandapy import oandapy
 import pandas,time,datetime
 import sqlite3
+
 
 folder='ini'
 instruments='Instrument.txt'
 granularity=['M15','H1','H4','D','W','M']
 savePath=open('ini/OandaSavePath.txt').read()
+
+opClient=oandapy.API(environment='live',
+                     access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5")
 
 defautClient= Client(
             environment=TRADE,
@@ -161,6 +166,23 @@ def Split(word,seps):
         return(s)
     # else: return []
 
+def read_sql(table,code=None,dbpath=None,con=None):
+    close=False
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,code)
+
+    if con is None:
+        con=sqlite3.connect(dbpath)
+        close=True
+
+    data=pandas.read_sql('''select * from "%s"''' % table,con)
+
+    if close:
+        con.close()
+
+    return data
+
 def save_sql(data,table,dbpath=None,con=None,if_exists='replace'):
     close=False
     if con is None:
@@ -169,6 +191,7 @@ def save_sql(data,table,dbpath=None,con=None,if_exists='replace'):
 
     data.to_sql(table,con,if_exists=if_exists)
 
+    print('%s saved' % table)
 
     if close:
         print(dbpath)
@@ -186,12 +209,99 @@ def readInsts():
 
     return out
 
+def getCommitmentsOfTraders(instrument,client=opClient):
+    '''
+
+    :param instrument:
+        Required Name of the instrument to retrieve Commitments of Traders data for.
+        Supported instruments: AUD_USD, GBP_USD, USD_CAD, EUR_USD, USD_JPY,
+                               USD_MXN, NZD_USD, USD_CHF, XAU_USD, XAG_USD.
+    :param client:
+    :return: Dataframe
+    '''
+
+    insts=['AUD_USD', 'GBP_USD', 'USD_CAD', 'EUR_USD', 'USD_JPY',
+           'USD_MXN', 'NZD_USD', 'USD_CHF', 'XAU_USD', 'XAG_USD']
+
+    if instrument not in insts:
+        print('%s : not supported for Commitments of Traders' % instrument)
+        return 0
+
+    response=client.get_commitments_of_traders(instrument=instrument)
+    data=pandas.DataFrame(response[instrument])
+
+    timelist=[]
+    for i in data.index:
+        value=data.get_value(i,'date')
+        timelist.append(value)
+        date=datetime.datetime.fromtimestamp(value)
+        data.set_value(i,'date',date)
+
+    data.insert(0,'time',timelist)
+    data.set_index('time',inplace=True)
+
+    return data
+
+def getHistoricalPositionRatios(instrument,period=31536000,client=opClient):
+    '''
+
+    :param instrument:
+        Required Name of the instrument to retrieve historical position ratios for.
+        Supported instruments: AUD_JPY, AUD_USD, EUR_AUD, EUR_CHF, EUR_GBP, EUR_JPY,
+                               EUR_USD, GBP_CHF, GBP_JPY, GBP_USD, NZD_USD, USD_CAD,
+                               USD_CHF, USD_JPY, XAU_USD, XAG_USD.
+    :param period:
+        Period of time in seconds to retrieve calendar data for.
+        Values not in the following list will be automatically adjusted to the nearest valid value.
+            86400 - 1 day - 20 minute snapshots
+            172800 - 2 day - 20 minute snapshots
+            604800 - 1 week - 1 hour snapshots
+            2592000 - 1 month - 3 hour snapshots
+            7776000 - 3 months - 3 hour snapshots
+            15552000 - 6 months - 3 hour snapshots
+            31536000 - 1 year - daily snapshots
+
+    :param client:
+
+    :return: DataFrame()
+    '''
+
+    insList=['AUD_JPY', 'AUD_USD', 'EUR_AUD', 'EUR_CHF', 'EUR_GBP', 'EUR_JPY','USD_CHF', 'USD_JPY',
+             'EUR_USD', 'GBP_CHF', 'GBP_JPY', 'GBP_USD', 'NZD_USD', 'USD_CAD', 'XAU_USD', 'XAG_USD']
+
+    if instrument not in insList:
+        print('%s : not supported for Historical Position Ratio' % instrument)
+        return 0
+
+    response = client.get_historical_position_ratios(instrument=instrument,period=period)
+    data=pandas.DataFrame(response['data'][instrument]['data'],columns=['time','long_position_ratio','exchange_rate'])
+
+    timeList=[]
+    for t in data['time']:
+        timeList.append(datetime.datetime.fromtimestamp(t))
+    data.insert(1,'datetime',timeList)
+
+    return data.set_index('time')
+
+def getCalendar(instrument,period=31536000,client=opClient):
+    response = client.get_eco_calendar(instrument=instrument,period=period)
+    calendar=pandas.DataFrame(response)
+
+    columns=calendar.columns.tolist()
+    columns[columns.index('timestamp')]='time'
+    calendar.columns=columns
+
+    dateList=[]
+    for i in calendar.index:
+        value=calendar.get_value(i,'time')
+        dateList.append(datetime.datetime.fromtimestamp(value))
+
+    calendar.insert(0,'datetime',dateList)
+
+    return calendar.set_index('time')
 
 if __name__ == '__main__':
-    # end=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-    #
-    # start=datetime.datetime(2001,1,1).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-    #
+
     Insts=readInsts()
     #
     # path='E:/StockProject/Oanda'
@@ -206,5 +316,20 @@ if __name__ == '__main__':
     #
     #     con.close()
 
-    print(savePath)
-    update(savePath+Insts[0],'H4')
+    for i in Insts:
+        dbpath='%s/%s.db' % (savePath,i)
+        con=sqlite3.connect(dbpath)
+        print(dbpath)
+
+        cot=getCommitmentsOfTraders(i)
+        if cot is not 0:
+            save_sql(cot,'COT',con=con)
+
+
+        hpr=getHistoricalPositionRatios(i)
+        if hpr is not 0:
+            save_sql(hpr,'HPR',con=con)
+
+        con.close()
+
+
