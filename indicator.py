@@ -22,44 +22,36 @@ def EMA(candle,period=12,price='close'):
     data.pop(0)
     return pandas.DataFrame(data,columns=['date','time','value'])
 
-# def MACD(candle,fast=12,slow=26,signal=9):
-#     print('Calulating MACD fast=%s slow=%s signal=%s' % (fast,slow,signal))
-#     fastema=EMA(candle,fast)
-#     slowema=EMA(candle,slow)
-#     MACDline=fastema.value-slowema.value
-#     MACDline.index=candle.index
-#
-#     start=candle.index.tolist()[0]
-#     hist=[candle.get_value(start,'date'),candle.get_value(start,'time'),
-#            MACDline[start],MACDline[start],0] #date/time/MACDline/signalLine/Histogram
-#     histograms=[hist]
-#
-#     k=2/(signal+1)
-#     for i in candle.index:
-#         today=MACDline[i]
-#         signalLine=today*k+(1-k)*hist[3]
-#         hist=[candle.get_value(i,'date'),candle.get_value(i,'time'),
-#             MACDline[i],signalLine,MACDline[i]-signalLine]
-#         histograms.append(hist)
-#
-#     histograms.pop(0)
-#
-#
-#     return pandas.DataFrame(histograms,columns=['date','time','MACDLine','Signal','Histogram'])
 
-def MA(time,price,period=60,matype=0,index=None):
+def MA(time,price,period=60,matype=0,index=None,compare=False):
     ma=talib.MA(numpy.array(price),timeperiod=period,matype=matype)
-    data=pandas.DataFrame({'time':time,'MA':ma}).dropna()
+    name='MA%s' % period
+    if compare:
+        name='C-'+name
+        for i in range(0,len(ma)):
+            v=ma[i]
+            if not numpy.isnan(v):
+                ma[i]=price[i]-v
 
+    data=pandas.DataFrame({'time':time,name:ma}).dropna()
     if index is not None:
         return data.set_index(index)
 
     return data
 
-def MACD(time,price,fast=12,slow=26,signal=9,index=None):
+def MACD(time,price,fast=12,slow=26,signal=9,index=None,out=None):
     input=numpy.array(price)
-    macd,signal,hist=talib.MACD(input,fastperiod=fast,slowperiod=slow,signalperiod=signal)
-    data=pandas.DataFrame({'time':time,'macd':macd,'signal':signal,'hist':hist}).dropna()
+    d={}
+
+    d['macd'],d['signal'],d['hist']=talib.MACD(input,fastperiod=fast,slowperiod=slow,signalperiod=signal)
+    if out is not None:
+        for k in d.copy().keys():
+            if k not in out:
+                d.pop(k)
+
+    d['time']=time
+
+    data=pandas.DataFrame(d).dropna()
 
     if index is not None:
         return data.set_index(index)
@@ -69,7 +61,7 @@ def MACD(time,price,fast=12,slow=26,signal=9,index=None):
 def ATR(time,high,low,close,period=14,index=None):
 
     atr=talib.ATR(numpy.array(high),numpy.array(low),numpy.array(close),timeperiod=period)
-    data=pandas.DataFrame({'ATR':atr,'time':time}).dropna()
+    data=pandas.DataFrame({'ATR%s' % period:atr,'time':time}).dropna()
 
     if index is not None:
         return data.set_index(index)
@@ -79,7 +71,7 @@ def ATR(time,high,low,close,period=14,index=None):
 def ADX(time,high,low,close,period=14,index=None):
 
     adx=talib.ADX(numpy.array(high),numpy.array(low),numpy.array(close),timeperiod=period)
-    data=pandas.DataFrame({'ADX':adx,'time':time}).dropna()
+    data=pandas.DataFrame({'ADX%s' % period:adx,'time':time}).dropna()
 
     if index is not None:
         return data.set_index(index)
@@ -89,7 +81,7 @@ def ADX(time,high,low,close,period=14,index=None):
 def RSI(time,price,period=14,index=None):
 
     rsi=talib.RSI(numpy.array(price),timeperiod=period)
-    data=pandas.DataFrame({'RSI':rsi,'time':time}).dropna()
+    data=pandas.DataFrame({'RSI%s' % period:rsi,'time':time}).dropna()
 
     if index is not None:
         return data.set_index(index)
@@ -109,6 +101,28 @@ def Correlation(price1,price2,time=None,period=30):
     #
 
     return data
+
+def momentum(time,price,period=60):
+    time = numpy.array(time)
+    price = numpy.array(price)
+
+    if len(time) != len(price):
+        print("length of time and price not equal")
+        return 0
+
+    if period > len(price):
+        print('period > length of data')
+        return 0
+
+    data=[]
+    for i in range(period,len(price)):
+        data.append([
+            time[i],price[i]/price[i-period]*100
+        ])
+
+    return pandas.DataFrame(data,columns=['time','momentum%s' % period])
+
+
 
 
 def MACD_Analisys(candle):
@@ -143,6 +157,8 @@ def MOMENTUM(candle,N,price='closePrice',dateIndex='tradeDate',timeFormat='%Y-%m
         data.append([time.mktime(tp),date,mome])
 
     return (pandas.DataFrame(data,columns=['time',dateIndex,'MOMENTUM']) )
+
+
 
 if __name__ == '__main__':
     pass

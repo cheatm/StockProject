@@ -1,3 +1,4 @@
+import pandas
 
 def merge(list1,list2):
 
@@ -8,7 +9,10 @@ def Stest():
 
     print(a.index(2))
 
+
+
 if __name__ == '__main__':
-    # print(merge([],[3,4,0]))
-    Stest()
+    # pandas.DataFrame().get()
+
+    pass
 

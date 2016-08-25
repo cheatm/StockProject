@@ -1,8 +1,8 @@
 from pyoanda import Client, TRADE
 from oandapy import oandapy
-import pandas,time,datetime
+import pandas,time,datetime,math
 import sqlite3
-import indicator
+import indicator,numpy
 
 
 folder='ini'
@@ -10,14 +10,27 @@ instruments='Instrument.txt'
 granularity=['M15','H1','H4','D','W','M']
 savePath=open('ini/OandaSavePath.txt').read()
 
-opClient=oandapy.API(environment='live',
-                     access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5")
+opClient=None
+defautClient=None
 
-defautClient= Client(
+def createOpClient(opClient=opClient):
+    if opClient is not None:
+        return opClient
+
+    opClient=oandapy.API(environment='live',
+                     access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5")
+    return opClient
+
+def creatDefaultClient(defaultClient=defautClient):
+    if defaultClient is not None:
+        return defaultClient
+
+    defautClient= Client(
             environment=TRADE,
             account_id="152486",
             access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5"
         )
+    return defaultClient
 
 
 def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', count=None,
@@ -40,6 +53,9 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
     :param recursion: ignore this
     :return: DataFrame()
     '''
+
+
+    client=creatDefaultClient(client)
 
     pdata=None
     print(start)
@@ -221,6 +237,8 @@ def getCommitmentsOfTraders(instrument,client=opClient):
     :return: Dataframe
     '''
 
+    client=createOpClient(client)
+
     insts=['AUD_USD', 'GBP_USD', 'USD_CAD', 'EUR_USD', 'USD_JPY',
            'USD_MXN', 'NZD_USD', 'USD_CHF', 'XAU_USD', 'XAG_USD']
 
@@ -232,13 +250,22 @@ def getCommitmentsOfTraders(instrument,client=opClient):
     data=pandas.DataFrame(response[instrument])
 
     timelist=[]
+    longshort=[]
+    shortlong=[]
+
     for i in data.index:
         value=data.get_value(i,'date')
         timelist.append(value)
+        ls=float(data.get_value(i,'ncl'))-float(data.get_value(i,'ncs'))
+        longshort.append(ls)
+        shortlong.append(-ls)
         date=datetime.datetime.fromtimestamp(value)
         data.set_value(i,'date',date)
 
     data.insert(0,'time',timelist)
+    data.insert(5,'l-s',longshort)
+    data.insert(6,'s-l',shortlong)
+
     data.set_index('time',inplace=True)
 
     return data
@@ -267,6 +294,8 @@ def getHistoricalPositionRatios(instrument,period=31536000,client=opClient):
     :return: DataFrame()
     '''
 
+    client=createOpClient(client)
+
     insList=['AUD_JPY', 'AUD_USD', 'EUR_AUD', 'EUR_CHF', 'EUR_GBP', 'EUR_JPY','USD_CHF', 'USD_JPY',
              'EUR_USD', 'GBP_CHF', 'GBP_JPY', 'GBP_USD', 'NZD_USD', 'USD_CAD', 'XAU_USD', 'XAG_USD']
 
@@ -280,11 +309,19 @@ def getHistoricalPositionRatios(instrument,period=31536000,client=opClient):
     timeList=[]
     for t in data['time']:
         timeList.append(datetime.datetime.fromtimestamp(t))
+
+    spr=[]
+    for l in data['long_position_ratio']:
+        spr.append(100-l)
+
     data.insert(1,'datetime',timeList)
+    data.insert(3,'short_position_ratio',spr)
 
     return data.set_index('time')
 
 def getCalendar(instrument,period=31536000,client=opClient):
+    client=createOpClient(client)
+
     response = client.get_eco_calendar(instrument=instrument,period=period)
     calendar=pandas.DataFrame(response)
 
@@ -301,29 +338,127 @@ def getCalendar(instrument,period=31536000,client=opClient):
 
     return calendar.set_index('time')
 
+def createFactorsTable(instrument=None,dbpath=None,con=None,**factors):
+    close=False
+
+    if len(factors)==0:
+        factors={
+            'D':['time','closeBid','highBid','lowBid'],
+            'COT':['time','s-l','s-l_diff'],
+            'HPR':['time','position','position_diff']
+        }
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,instrument)
+
+    print(dbpath)
+
+    if con is None:
+        con=sqlite3.connect(dbpath)
+        close=True
+
+    data={}
+    start=0
+    for k in factors.keys():
+        f=factors[k]
+
+        data[k]=read_sql(k,con=con).get(f)
+        startTime=data[k].get_value(0,'time')
+        if start<startTime:
+            start=startTime
+    print(start)
+
+    price=data['D']
+
+    momentum=indicator.momentum(price['time'],price['closeBid'],period=60)
+    data['momentumfast']=momentum
+    momentum=indicator.momentum(price['time'],price['closeBid'],period=130)
+    data['momentumslow']=momentum
+    data['atr']=indicator.ATR(price['time'],price['highBid'],price['lowBid'],price['closeBid'],period=10)
+    data['mafast']=indicator.MA(price['time'],price['closeBid'],period=60,compare=True)
+    data['maslow']=indicator.MA(price['time'],price['closeBid'],period=130,compare=True)
+    adx=indicator.ADX(price['time'],price['highBid'],price['lowBid'],price['closeBid'],period=10)
+    data['ADX']=adx
+    data['RSI']=indicator.RSI(price['time'],price['closeBid'],period=10)
+    data['MACD']=indicator.MACD(price['time'],price['closeBid'],out=['hist'])
+    histdiff=[0]
+    for h in data['MACD'].index.tolist()[1:]:
+        histdiff.append(data['MACD'].get_value(h,'hist')-data['MACD'].get_value(h-1,'hist'))
+    data['MACD'].insert(2,'hist_diff',histdiff)
+
+
+    data['ADX-mom']=indicator.momentum(adx['time'],adx['ADX%s' % 10],period=5)
+    data['ADX-mom'].columns=['time','ADX-mom']
+
+
+    out=None
+    for k in sorted(data.keys()):
+        if k == 'D':
+            continue
+
+        v=data[k]
+        select=v[v.time>=start]
+        for i in select.index:
+            t=select.get_value(i,'time')
+
+            select.set_value(i,'time',datetime.date.fromtimestamp(t))
+        # print(select)
+        if out is None:
+            out=select.drop_duplicates('time').set_index('time')
+
+        else:
+            out=out.join(select.drop_duplicates('time').set_index('time'),how='outer')
+
+    for c in out.columns:
+        former=out.get_value(out.index.tolist()[0],c)
+        for t in out.index.tolist()[1:]:
+            v=out.get_value(t,c)
+            # print(t,c,v,type(v))
+            if math.isnan(v):
+                out.set_value(t,c,former)
+            former=out.get_value(t,c)
+
+    return out.dropna()
+
+
+def changeData(table,instrument=None,dbpath=None):
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,instrument)
+
+    con=sqlite3.connect(dbpath)
+
+    try:
+        data=read_sql(table,con=con)
+    except Exception as e:
+        print(e)
+        con.close()
+        return 0
+
+    data.columns=['time', 'date', 'ncl', 'ncs', 'oi', 'l-s', 's-l', 's-l_diff',
+       'price', 'unit']
+
+
+    save_sql(data.set_index('time'),table,con=con)
+
+    con.close()
+    print(data)
+
+
 if __name__ == '__main__':
 
     Insts=readInsts()
-    #
-    # path='E:/StockProject/Oanda'
-    # for i in Insts:
-    #     dbpath='%s/%s.db' % (path,i)
-    #     print(dbpath)
-    #     con=sqlite3.connect(dbpath)
-    #
-    #     for g in granularity[4:]:
-    #         print(g)
-    #         save_sql(getInstrumentHistory(i,start=start,end=end,candle_format='bidask',granularity=g),g,con=con)
-    #
-    #     con.close()
-
-    i=Insts[0]
-    data=read_sql('D',i)
-    # print(data)
-    # ma=indicator.RSI(data['time'],data['closeBid'],)
-    # atr=indicator.ADX(data['time'],high=data['highBid'],low=data['lowBid'],close=data['closeBid'],index='time')
-    corr=indicator.Correlation(data['closeBid'],data['openBid'])
-
-    print(corr)
 
 
+
+    for i in Insts[0:5]:
+        dbpath='%s/%s.db' % (savePath,i)
+        print(dbpath)
+        factor=createFactorsTable('USD_CAD')
+
+        save_sql(factor,'Factors',dbpath=dbpath)
+
+
+
+    # factor=createFactorsTable('USD_CAD')
+    # print(factor)
