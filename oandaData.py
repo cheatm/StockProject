@@ -454,7 +454,7 @@ if __name__ == '__main__':
     for i in Insts[0:5]:
         dbpath='%s/%s.db' % (savePath,i)
         print(dbpath)
-        factor=createFactorsTable('USD_CAD')
+        factor=createFactorsTable(i)
 
         save_sql(factor,'Factors',dbpath=dbpath)
 

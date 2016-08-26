@@ -667,6 +667,217 @@ class StockChart(QtGui.QMainWindow):
     def output(self):
         print('out')
 
+class RRG_M(QtGui.QMainWindow):
+    from math import cos,sin,tan,atan2
+
+    highedge=10
+    lowedge=10
+    leftedge=50
+    rightedge=50
+
+    period=10
+
+    data={}
+
+    colors=[
+
+        QtGui.QColor('cyan'),
+        QtGui.QColor('green'),
+        QtGui.QColor('blue'),
+        QtGui.QColor('gray'),
+        QtGui.QColor('red'),
+        QtGui.QColor('magenta'),
+        QtGui.QColor('white'),
+        QtGui.QColor('yellow')
+    ]
+
+    graphColor={}
+
+    def __init__(self,parent=None):
+        QtGui.QWidget.__init__(self,parent)
+        self.initWidget()
+
+    def initWidget(self):
+
+        screen=QtGui.QDesktopWidget().screenGeometry()
+        self.resize(screen.width()/2,screen.height()/2)
+        self.setWindowTitle('RRG_M')
+        self.center()
+
+    def center(self):
+        '''
+        move to center of the monitor
+        :return:
+        '''
+        screen=QtGui.QDesktopWidget().screenGeometry()
+        size=self.geometry()
+        self.move(screen.width()/2-size.width()/2,screen.height()/2-size.height()/2)
+
+    def importMomentum(self,name,time,short,long):
+        self.data[name]=pandas.DataFrame({'time':time,'short':short,'long':long})
+        print(self.data[name])
+
+    def importPrice(self,name,time,price,short=60,long=130,color=None):
+        '''
+        import price data and transform to momentum which should be saved in self.data
+        :param name:
+        :param time: list,series
+        :param price: list,series
+        :param short: shortPeriod
+        :param long: longPeriod
+        :return:
+        '''
+        if len(time) != len(price):
+            print('length not equal')
+            return 0
+
+        shortmom=indicator.momentum(time,price,short)
+        longmom=indicator.momentum(time,price,long)
+        shortmom.columns=['time','short']
+        longmom.columns=['time','long']
+
+
+        self.data[name]=shortmom.merge(longmom,how='inner')
+
+        if color is None:
+            l=len(self.graphColor)
+            self.graphColor[name]=self.colors[l]
+
+        print(self.graphColor)
+
+
+
+    def ArrangeData(self):
+        '''
+        create self.Graph which contains the data that should be shown on the monitor
+        :return:
+        '''
+
+        self.Graph={}
+
+        for k in self.data.keys():
+            data=self.data[k]
+            start=data.index.tolist()[-self.period]
+
+            self.Graph[k]=data[data.index>=start]
+
+        Max=[]
+        Min=[]
+        for v in self.Graph.values():
+
+            for c in ['short','long']:
+                Max.append(max(v[c].tolist()))
+                Min.append(min(v[c].tolist()))
+
+        MaxValue=max(Max)-100
+        MinValue=min(Min)-100
+
+        edge=max([abs(MaxValue),abs(MinValue)])*1.1
+
+        halfY=(self.height()-self.highedge-self.lowedge)/2
+        halfX=(self.width()-self.leftedge-self.rightedge)/2
+
+        for v in self.Graph.keys():
+            graph=self.Graph[v]
+            points=[]
+            for i in graph.index:
+
+                x=(graph.get_value(i,'long')-100)/edge*halfX
+                y=(graph.get_value(i,'short')-100)/edge*halfY
+
+                points.append(QtCore.QPointF(x,y))
+
+
+            self.Graph[v].insert(3,'QPoint',points)
+
+
+        rect=QtCore.QRectF(QtCore.QPointF(halfX,halfY),
+                           QtCore.QPointF(-halfX,-halfY))
+
+        self.BackGround={
+            'back':rect,
+            'x':QtCore.QLineF(-halfX,0,halfX,0),
+            'y':QtCore.QLineF(0,-halfY,0,halfY)
+
+        }
+
+
+
+    def paintEvent(self,event):
+        self.ArrangeData()
+
+        qp=QtGui.QPainter()
+        qp.begin(self)
+
+
+        qp.translate(self.width()/2,self.height()/2)
+        qp.scale(1,-1)
+        self.drawBackGround(event,qp,self.BackGround)
+
+        for k in self.Graph.keys():
+
+            name="%s:%s,%s" % (k,
+                               int(self.Graph[k]['long'].tolist()[-1]*100)/100,
+                               int(self.Graph[k]['short'].tolist()[-1]*100)/100)
+            self.drawLines(event,qp,name,self.Graph[k]['QPoint'],self.graphColor[k])
+
+        pass
+
+    def drawLines(self,event,qp,name,points,color):
+        qp.setPen(color)
+        qp.setBrush(color)
+
+        index=points.index.tolist()
+
+        for i in index[:-1]:
+            qp.drawLine(points[i],points[i+1])
+
+            qp.drawEllipse(points[i],2,2)
+
+        self.drawArrow(event,qp,points[index[-2]],points[index[-1]])
+
+        self.drawLabel(event,qp,name,points[index[-1]])
+
+    def drawLabel(self,event,qp,name,point):
+        font=QtGui.QFont('label',10)
+        qp.setFont(font)
+
+        actual=QtCore.QPointF(point.x()+10,-point.y()+10)
+        qp.scale(1,-1)
+        qp.drawText(actual,name)
+        qp.scale(1,-1)
+
+
+    def drawArrow(self,event,qp,last,end):
+        print(last,end)
+        length=8
+        degrees=0.4
+        angle=self.atan2(end.y()-last.y(),end.x()-last.x())+3.1415926
+        x1=end.x()+length*self.cos(angle-degrees)
+        y1=end.y()+length*self.sin(angle-degrees)
+        x2=end.x()+length*self.cos(angle+degrees)
+        y2=end.y()+length*self.sin(angle+degrees)
+
+        path=QtGui.QPainterPath()
+        path.moveTo(end)
+        path.lineTo(QtCore.QPointF(x1,y1))
+        path.lineTo(QtCore.QPointF(x2,y2))
+        path.lineTo(end)
+
+        qp.drawPath(path)
+
+
+
+        pass
+
+    def drawBackGround(self,event,qp,backGround,backcolor=QtGui.QColor(0,0,0),linecolor=QtGui.QColor(255,255,255)):
+
+        qp.setPen(backcolor)
+        qp.setBrush(backcolor)
+        qp.drawRect(backGround['back'])
+        qp.setPen(linecolor)
+        qp.drawLine(backGround['x'])
+        qp.drawLine(backGround['y'])
 
 
 def printData():
@@ -713,8 +924,12 @@ def showMainWindow():
     wideget.show()
     sys.exit(app.exec_())
 
+def showRRG_M():
+    app=QtGui.QApplication(sys.argv)
+    rrg=RRG_M()
+    rrg.show()
+    sys.exit(app.exec_())
 
 
 if __name__ == '__main__':
-
-    showChart()
+    showRRG_M()
