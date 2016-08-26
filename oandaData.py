@@ -444,19 +444,92 @@ def changeData(table,instrument=None,dbpath=None):
     con.close()
     print(data)
 
+def factorToScore(insts):
+    score=[]
+    for i in insts:
+
+        data=read_sql('Factors',i)
+        index=data.index.tolist()[-1]
+        out=data[data.index==index]
+        sldiff=0
+
+        if out.get_value(index,'s-l_diff')<-1000:
+            sldiff=-1
+        elif out.get_value(index,'s-l_diff')>1000:
+            sldiff=1
+
+        posdiff=0
+        if out.get_value(index,'position_diff')<-0.5:
+            posdiff=-1
+        elif out.get_value(index,'position_diff')>0.5:
+            posdiff=1
+
+        hist=0
+        if out.get_value(index,'hist')>0 and out.get_value(index,'hist_diff')<0:
+            hist=-1
+        elif out.get_value(index,'hist')<0 and out.get_value(index,'hist_diff')>0:
+            hist=1
+
+        MA=0
+
+        if out.get_value(index,'C-MA60')>out.get_value(index,'C-MA130'):
+            if out.get_value(index,'C-MA60')<0 and out.get_value(index,'C-MA130')<0:
+                MA=-1
+        elif out.get_value(index,'C-MA60')<out.get_value(index,'C-MA130'):
+            if out.get_value(index,'C-MA60')>0 and out.get_value(index,'C-MA130')>0:
+                MA=1
+
+        mom=0
+        sm=out.get_value(index,'momentum60')
+        lm=out.get_value(index,'momentum130')
+        if lm<0 and sm>0:
+            mom=-1
+        if lm>0 and sm<0 and (-sm)>lm:
+            mom=-1
+        if lm>0 and sm<0:
+            mom=1
+        if lm<0 and sm>0 and sm>(-lm):
+            mom=1
+
+        rsi='Central area'
+        if out.get_value(index,'RSI10')<40:
+            rsi='Oversold'
+        elif out.get_value(index,'RSI10')>60:
+            rsi='Overbougut'
+
+        adx='Consolidate'
+        ADX=out.get_value(index,'ADX10')
+        ADXm=out.get_value(index,'ADX-mom')
+        if ADX>25 :
+            if ADXm>100:
+                adx='Trend'
+            else:
+                adx='Counter Trend'
+
+        atr=out.get_value(index,'ATR10')
+
+        score.append([i,sldiff,posdiff,hist,MA,mom,rsi,adx,atr*0.35,sldiff+posdiff+hist+MA++mom])
+        # print(score)
+
+    data=pandas.DataFrame(score,columns=[
+        'Symbol','S-L_diff','Position_diff','hist & hist_diff','C-MA60 && C-MA130',
+        'Momentum 60 & Momentum 130','RSI','ADX & ADX_Momentum','ATR:ATR*0.35','score'
+    ])
+    print(data)
 
 if __name__ == '__main__':
 
     Insts=readInsts()
 
+    factorToScore(Insts[0:5])
 
 
-    for i in Insts[0:5]:
-        dbpath='%s/%s.db' % (savePath,i)
-        print(dbpath)
-        factor=createFactorsTable(i)
-
-        save_sql(factor,'Factors',dbpath=dbpath)
+    # for i in Insts[0:5]:
+    #     dbpath='%s/%s.db' % (savePath,i)
+    #     print(dbpath)
+    #     factor=createFactorsTable(i)
+    #
+    #     save_sql(factor,'Factors',dbpath=dbpath)
 
 
 
