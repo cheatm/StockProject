@@ -8,6 +8,7 @@ folder='Data'
 folder2='E:/FinanceData/Data'
 DataBase='StockData.db'
 dbPath='%s/%s' % (folder,DataBase)
+savePath=open('ini/StockSavePath.txt').read()
 
 HKindex=['HSI','HSCEI','HSC','HSF','HSCCI','HSP','HSU']
 mkt=ts.Market()
@@ -62,6 +63,8 @@ def getHKStockData(code,**f):
         g = timeframe(w:week, d:day, w:week, m:month)
     :return: DataFrame()
     '''
+
+    print(code,f)
 
     url='http://table.finance.yahoo.com/table.csv?s=%s' % code
 
@@ -168,9 +171,14 @@ def changeDBdata(table,db=None,con=None):
 def updateAllStock(pathFolder):
     table_names=open('ini/HKStockList.txt').read().split(',')
 
+
     for name in table_names:
-         con=sqlite3.connect('%s/%s.db' % (pathFolder,name))
-         updateStockData(code=name[0],con=con)
+
+        path='%s/%s.db' % (pathFolder,name)
+        print(path)
+        con=sqlite3.connect(path)
+        updateStockData(code=name,con=con)
+        con.close()
 
 
 def updateStockData(code,table='Day',db=None,con=None):
@@ -190,19 +198,24 @@ def updateStockData(code,table='Day',db=None,con=None):
 
     last=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % table).fetchone()
     today=time.strftime('%Y-%m-%d',time.localtime())
-    print(last)
 
     if today==last[0]:
+        print('already updated')
         return (0)
 
     lastdate=last[0].split('-')
+    print(lastdate)
     try:
+
         update=getHKStockData(code,a=int(lastdate[1])-1,b=int(lastdate[2])+1,c=int(lastdate[0]))
         print(update)
-        update.to_sql(table,con,if_exists='append')
+
         # print(pandas.read_sql('select * from "%s"' % code,con))
     except Exception as e:
-        print(e)
+        print('error:',e)
+        return 0
+
+    update.to_sql(table,con,if_exists='append')
 
     if close:
         con.close()
@@ -302,21 +315,10 @@ def getInvestingStockAddress(text):
 if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
 
+    updateAllStock(savePath)
 
-    # address=pandas.read_csv('%s/InvestingURL.csv' % folder)
-    # address.set_index('code',inplace=True)
-    # con=sqlite3.connect(dbPath)
-    # table_names=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
-    #
-    # for name in table_names:
-    #     code=name[0].split('.')[0]
-    #     try:
-    #
-    #         basic=getBasicData(address.get_value(int(code),'url'),0)
-    #         saveHKBasic(name[0],basic)
-    #
-    #     except Exception as e:
-    #         print(name[0],e)
+    # data=getHKStockData('0001.hk',a=7,b=20,c=2016)
+    # print(data)
     pass
 
 

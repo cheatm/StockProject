@@ -21,16 +21,16 @@ def createOpClient(opClient=opClient):
                      access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5")
     return opClient
 
-def creatDefaultClient(defaultClient=defautClient):
-    if defaultClient is not None:
-        return defaultClient
+def creatDefaultClient(client=defautClient):
+    if client is not None:
+        return client
 
-    defautClient= Client(
+    client= Client(
             environment=TRADE,
             account_id="152486",
             access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5"
         )
-    return defaultClient
+    return client
 
 
 def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', count=None,
@@ -56,6 +56,7 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
 
 
     client=creatDefaultClient(client)
+    print(client)
 
     pdata=None
     print(start)
@@ -90,7 +91,7 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
             pdata=pandas.DataFrame(data['candles'])
 
         except Exception as e:
-            print(e)
+            print('Error',e)
             # 如果所需candle数 > 5000 则从start开始每5000根获取一次并合并数据，recursion=True
             if '5000' in str(e):
                 data=getInstrumentHistory(instrument,candle_format=candle_format,granularity=granularity, count=5000,
@@ -139,7 +140,7 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
 
     return (pdata)
 
-def update(dbpath,*granularity,instrument=None):
+def update(*granularity,dbpath=None,instrument=None,con=None):
     '''
 
     :param dbpath: address to save
@@ -149,10 +150,18 @@ def update(dbpath,*granularity,instrument=None):
     :return: None
     '''
 
-    con=sqlite3.connect(dbpath)
+    close=False
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,instrument)
+
+    if con is None:
+
+        con=sqlite3.connect(dbpath)
+        close=True
 
     if instrument is None:
-        instrument=Split(dbpath,['/','.'])[-2]
+        instrument=Split(dbpath,'/','.')[-2]
 
     if len(granularity)==0:
         granularity=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
@@ -161,23 +170,31 @@ def update(dbpath,*granularity,instrument=None):
 
     for g in granularity:
         lastRecord=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % g).fetchone()
-        startTime=datetime.datetime.fromtimestamp(lastRecord[0]).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+        start=datetime.datetime.fromtimestamp(lastRecord[0])
+        startTime=start.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
         endTime=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
         new=getInstrumentHistory(instrument,granularity=g,start=startTime,end=endTime)
-        new.to_sql(g,con,if_exists='append')
+        print(new)
+        new[new.time>start].to_sql(g,con,if_exists='append')
 
-    con.close()
+    if close:
+        con.close()
 
-def Split(word,seps):
+def Split(word,*seps,outType='str'):
 
     if len(seps)>1:
         w=word.split(seps[0])
         s=[]
         for i in w:
-            s.extend(Split(i,seps[1:]))
+            s.extend(Split(i,*seps[1:]))
+
+        if outType is 'int':
+            for i in range(0,len(s)):
+                s[i]=int(s[i])
         return(s)
     elif len(seps)==1:
         s=word.split(seps[0])
+
         while '' in s:
             s.remove('')
         return(s)
@@ -220,13 +237,13 @@ def readInsts():
     lines=file.readlines()
     out=[]
     for l in lines:
-        out.extend(Split(l,[',','\n']))
+        out.extend(Split(l,',','\n'))
 
     file.close()
 
     return out
 
-def getCommitmentsOfTraders(instrument,client=opClient):
+def getCommitmentsOfTraders(instrument,client=opClient,start=None):
     '''
 
     :param instrument:
@@ -252,25 +269,43 @@ def getCommitmentsOfTraders(instrument,client=opClient):
     timelist=[]
     longshort=[]
     shortlong=[]
+    publish=[]
+    diff=[0]
 
     for i in data.index:
         value=data.get_value(i,'date')
+
         timelist.append(value)
+        publish.append(value+4*24*60*60)
+
         ls=float(data.get_value(i,'ncl'))-float(data.get_value(i,'ncs'))
+
         longshort.append(ls)
         shortlong.append(-ls)
+
+        try:
+            diff.append(-ls-shortlong[-2])
+        except :
+            pass
+
         date=datetime.datetime.fromtimestamp(value)
         data.set_value(i,'date',date)
 
     data.insert(0,'time',timelist)
+    data.insert(0,'publish',publish)
     data.insert(5,'l-s',longshort)
     data.insert(6,'s-l',shortlong)
+    data.insert(7,'s-l_diff',diff)
+
+    if start is not None:
+        return data[data.time>=start].set_index('time')
 
     data.set_index('time',inplace=True)
 
+
     return data
 
-def getHistoricalPositionRatios(instrument,period=31536000,client=opClient):
+def getHistoricalPositionRatios(instrument,period=31536000,client=opClient,start=None):
     '''
 
     :param instrument:
@@ -306,16 +341,29 @@ def getHistoricalPositionRatios(instrument,period=31536000,client=opClient):
     response = client.get_historical_position_ratios(instrument=instrument,period=period)
     data=pandas.DataFrame(response['data'][instrument]['data'],columns=['time','long_position_ratio','exchange_rate'])
 
+    if start is not None:
+        data=data[data.time>start]
+
     timeList=[]
     for t in data['time']:
         timeList.append(datetime.datetime.fromtimestamp(t))
 
     spr=[]
+    position=[]
+    posdiff=[0]
     for l in data['long_position_ratio']:
         spr.append(100-l)
+        position.append(spr[-1]-l)
+        try:
+            posdiff.append(position[-2]-position[-1])
+        except:
+            pass
+
 
     data.insert(1,'datetime',timeList)
     data.insert(3,'short_position_ratio',spr)
+    data.insert(4,'position',position)
+    data.insert(5,'position_diff',posdiff)
 
     return data.set_index('time')
 
@@ -344,7 +392,7 @@ def createFactorsTable(instrument=None,dbpath=None,con=None,**factors):
     if len(factors)==0:
         factors={
             'D':['time','closeBid','highBid','lowBid'],
-            'COT':['time','s-l','s-l_diff'],
+            'COT':['publish','s-l','s-l_diff'],
             'HPR':['time','position','position_diff']
         }
 
@@ -363,10 +411,14 @@ def createFactorsTable(instrument=None,dbpath=None,con=None,**factors):
         f=factors[k]
 
         data[k]=read_sql(k,con=con).get(f)
-        startTime=data[k].get_value(0,'time')
+        startTime=data[k].get_value(0,f[0])
         if start<startTime:
             start=startTime
-    print(start)
+
+    data['COT'].columns=['time','s-l','s-l_diff']
+
+    if close:
+        con.close()
 
     price=data['D']
 
@@ -390,11 +442,14 @@ def createFactorsTable(instrument=None,dbpath=None,con=None,**factors):
     data['ADX-mom']=indicator.momentum(adx['time'],adx['ADX%s' % 10],period=5)
     data['ADX-mom'].columns=['time','ADX-mom']
 
+    data.pop('D')
+
+
 
     out=None
     for k in sorted(data.keys()):
-        if k == 'D':
-            continue
+        # if k == 'D':
+        #     continue
 
         v=data[k]
         select=v[v.time>=start]
@@ -428,26 +483,22 @@ def changeData(table,instrument=None,dbpath=None):
 
     con=sqlite3.connect(dbpath)
 
+
     try:
         data=read_sql(table,con=con)
+        data.drop_duplicates('time').set_index('time').to_sql(table,con,if_exists='replace')
     except Exception as e:
         print(e)
         con.close()
         return 0
 
-    data.columns=['time', 'date', 'ncl', 'ncs', 'oi', 'l-s', 's-l', 's-l_diff',
-       'price', 'unit']
-
-
-    save_sql(data.set_index('time'),table,con=con)
+    # save_sql(data.set_index('time'),table,con=con)
 
     con.close()
-    print(data)
 
 def factorToScore(insts):
     score=[]
     for i in insts:
-
         data=read_sql('Factors',i)
         index=data.index.tolist()[-1]
         out=data[data.index==index]
@@ -517,21 +568,71 @@ def factorToScore(insts):
     ])
     print(data)
 
+def updateCOT(instrument=None,dbpath=None,con=None):
+    close=False
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,instrument)
+
+    if con is None:
+        con=sqlite3.connect(dbpath)
+        close=True
+
+    last=read_sql('COT',con=con)
+    new=getCommitmentsOfTraders(instrument,start=last['publish'].tolist()[-1])
+
+    new=last.append(new)
+    save_sql(new,'COT',con=con)
+
+    if close:
+        con.close()
+
+def updateHPR(instrument=None,dbpath=None,con=None):
+    insList=['AUD_JPY', 'AUD_USD', 'EUR_AUD', 'EUR_CHF', 'EUR_GBP', 'EUR_JPY','USD_CHF', 'USD_JPY',
+             'EUR_USD', 'GBP_CHF', 'GBP_JPY', 'GBP_USD', 'NZD_USD', 'USD_CAD', 'XAU_USD', 'XAG_USD']
+    if instrument not in insList:
+        return 0
+
+
+    close=False
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,instrument)
+
+    if con is None:
+        con=sqlite3.connect(dbpath)
+        close=True
+
+    last=read_sql('HPR',con=con)
+
+    new=getHistoricalPositionRatios(instrument,start=last['time'].tolist()[-1])
+    print(new)
+    new=last.drop(last.index.tolist()[-1]).set_index('time').append(new)
+
+
+    print(new)
+    save_sql(new,'HPR',con=con)
+
 if __name__ == '__main__':
 
     Insts=readInsts()
 
-    factorToScore(Insts[0:5])
+
+    for i in Insts[3:]:
+        updateHPR(i)
+
+    # factor=createFactorsTable(Insts[0])
+    # print(factor)
+
+    # last=read_sql('COT',code=Insts[0])['date'].tolist()[-1]
+    # t=(Split(last,'-',' ',':',outType='int'))
+    #
+    #
+    # last=datetime.datetime(*t)
 
 
-    # for i in Insts[0:5]:
+
+    # for i in Insts:
     #     dbpath='%s/%s.db' % (savePath,i)
     #     print(dbpath)
-    #     factor=createFactorsTable(i)
-    #
-    #     save_sql(factor,'Factors',dbpath=dbpath)
-
-
-
-    # factor=createFactorsTable('USD_CAD')
-    # print(factor)
+    #     update(dbpath,'D')
