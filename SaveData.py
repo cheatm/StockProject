@@ -10,7 +10,10 @@ import matplotlib.pyplot as plt
 DBName='YahooData.db'
 dirPath='D:/StockData'
 # fullDBPath=dirPath+'/'+DBName
-fullDBPath=DBName
+
+file=open('ini/YHpath')
+fullDBPath=file.read()+'/'+DBName
+file.close()
 
 now=time.time()
 today=time.localtime(now)
@@ -139,7 +142,7 @@ if __name__ == '__main__':
     # test()
     createDataBase()
 
-    saveYahooData(NASDAQ='2016/08/26',HK=todaystr)
+    saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
     # saveYahooData(NASDAQ=yesterdaystr)
     # saveYahooData(HK=todaystr)
 

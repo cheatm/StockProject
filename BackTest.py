@@ -4,49 +4,175 @@ import pandas
 
 class Account():
 
+    class order():
 
-    def __init__(self,initCash=1000000):
-        self.holding=pandas.DataFrame(data=[['cash',0,0,initCash]],columns=['code','lots','price','value'])
+        def __init__(self,ticket,code,openPrice,lots,lever,stoplost=0,takeprofit=0):
 
-    def buy(self,code,lots,price):
-        self.holding.set_value(0,'value',self.holding.get_value(0,'value')-lots*price)
-        self.holding=self.holding.append(
-            pandas.DataFrame(data=[[code,lots,price,lots*price]],
-            index=[self.holding.index.tolist()[-1]+1],
-            columns=['code','lots','price','value'])
-        )
+            self.code=code
+            self.openPrice=openPrice
+            self.lots=lots
+            self.stoplost=stoplost
+            self.takeprofit=takeprofit
+            self.ticket=ticket
+            self.deposit=abs(openPrice*lots/lever)
 
+        def close(self,price,cls=None):
+
+            self.closeprice=price
+            self.profit=(self.closeprice-self.openPrice)*self.lots
+
+        def refresh(self,price,cls):
+
+            profit=(price-self.openPrice)*self.lots
+
+            if profit>(self.takeprofit-self.openPrice)*self.lots:
+                cls.closeOrder(ticket=self.ticket,price=self.takeprofit)
+
+                return
+
+            if profit<(self.stoplost-self.openPrice)*self.lots:
+                cls.closeOrder(ticket=self.ticket,price=self.stoplost)
+
+                return
+
+            self.close=price
+            self.profit=profit
+
+
+    orders=[]
+    ordersHistory=[]
+
+    def __init__(self,initCash=1000000,lever=1):
+        '''
+
+        :param initCash: initial cash
+        :param lever: >1
+        :return:
+
+        How to use:
+            # create an account:
+            acc=Account()
+
+
+        '''
+
+
+        self.lever=lever
+        self.cash=initCash
+        self.nextTicket=0
         pass
 
-    def sell(self,code,lots,price):
-        pass
+    def closeOrder(self,price,ticket=None,pos=0):
+        '''
+        close an order by position or by ticket
+
+        :param price: necessary
+        :param ticket: close order by orderticket
+        :param pos:
+            close order by the position of order on the orderlist:
+                0: earliest opentime
+                -1: latest opentime
+        :return:
+        '''
+        if ticket is not None:
+            for i in range(0,len(self.orders)):
+                if self.orders[i].ticket==ticket:
+                    self.orders[i].close(price)
+                    self.cash=self.cash+self.orders[i].profit+self.orders[i].deposit
+                    self.ordersHistory.append(self.orders[i])
+                    self.orders.pop(i)
+                    return
+
+        self.orders[pos].close(price)
+        self.cash=self.cash+self.orders[pos].profit+self.orders[pos].deposit
+        self.ordersHistory.append(self.orders[pos])
+        self.orders.pop(pos)
+
+    def openOrder(self,code,price,lots,stoplost=0,takeprofit=0,ticket=None):
+        '''
+        open an order
+        :param price:
+        :param lots:
+        :param stoplost:
+        :param takeprofit:
+        :param ticket:
+        :return:
+        '''
+        if ticket is None:
+            ticket=self.nextTicket
+
+        order=self.order(ticket,code,price,lots,self.lever,stoplost,takeprofit)
+        self.orders.append(order)
+        self.cash=self.cash-order.deposit
+
+        self.nextTicket=ticket+1
+
+
+
+    def refreshOrders(self,price):
+        for o in self.orders.copy():
+
+            o.refresh(price,self)
+
+    def showOrders(self):
+        attrs=['ticket','code','openPrice','lots','stoplost','takeprofit','deposit']
+        orders=[]
+        for  o in self.orders:
+            order=[]
+            for a in attrs:
+                order.append(getattr(o,a))
+            orders.append(order)
+        print(pandas.DataFrame(orders,columns=attrs))
+
+
 
 class System():
 
-    entry={}
+    data={}
+    Entry={}
+    Exit={}
 
-    def __init__(self,entry=None,account=Account()):
+    def __init__(self,entry=None,exit=None,account=Account()):
 
         self.acc=account
         self.setEntry(entry)
+        self.setExit(exit)
 
     def setEntry(self,entry):
-        for k in entry.keys():
-            self.entry[k]=entry[k]
+        if entry is not None:
+            for k in entry.keys():
+                self.Entry[k]=entry[k]
 
-        print(self.entry)
+    def setExit(self,exit):
+        if exit is not None:
+            for k in exit.keys():
+                self.Exit[k]=exit[k]
 
     def run(self):
-        for e in self.entry:
-            e()
+        for k in self.Entry.keys():
+            func=self.Entry[k]
+            func(self)
 
-def def1():
-    print('def1')
+
+def def3(cls):
+    print(cls.data)
 
 
 if __name__ == '__main__':
-    system=System()
-    system.setEntry({'def1':def1})
+    # system=System()
+    #
+    # system.setEntry({'def3':def3})
+    # system.run()
+
+    acc=Account()
+    acc.openOrder('EUR_USD',10000,1,9990,10300)
+    acc.openOrder('EUR_USD',10000,-1,10090,9890)
+
+    acc.showOrders()
+
+    acc.closeOrder(9990,pos=1)
+    acc.refreshOrders(10400)
+
 
 
     pass
