@@ -56,7 +56,6 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
 
 
     client=creatDefaultClient(client)
-    print(client)
 
     pdata=None
     print(start)
@@ -164,18 +163,21 @@ def update(*granularity,dbpath=None,instrument=None,con=None):
         instrument=Split(dbpath,'/','.')[-2]
 
     if len(granularity)==0:
-        granularity=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
-        for i in range(0,len(granularity)):
-            granularity[i]=granularity[i][0]
+        # granularity=con.execute('''select name from sqlite_master where type='table' ''').fetchall()
+        granularity=['M15','H1','H4','D','W','M']
 
     for g in granularity:
-        lastRecord=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % g).fetchone()
-        start=datetime.datetime.fromtimestamp(lastRecord[0])
-        startTime=start.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-        endTime=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
-        new=getInstrumentHistory(instrument,granularity=g,start=startTime,end=endTime)
-        print(new)
-        new[new.time>start].to_sql(g,con,if_exists='append')
+        print (g)
+        try:
+            lastRecord=con.execute('''SELECT * FROM "%s" ORDER BY rowid DESC ''' % g).fetchone()
+            start=datetime.datetime.fromtimestamp(lastRecord[0])
+            startTime=start.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+            endTime=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+            new=getInstrumentHistory(instrument,granularity=g,start=startTime,end=endTime)
+
+            new[new.index>lastRecord[0]].to_sql(g,con,if_exists='append')
+        except Exception as e:
+            print('error_181:',e)
 
     if close:
         con.close()
@@ -616,10 +618,11 @@ def updateHPR(instrument=None,dbpath=None,con=None):
 if __name__ == '__main__':
 
     Insts=readInsts()
+    # update(instrument=Insts[0])
 
+    for i in Insts[1:]:
 
-    for i in Insts[3:]:
-        updateHPR(i)
+        update(instrument=i)
 
     # factor=createFactorsTable(Insts[0])
     # print(factor)
