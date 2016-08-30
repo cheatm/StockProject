@@ -141,7 +141,7 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
 
 def update(*granularity,dbpath=None,instrument=None,con=None):
     '''
-
+    update candle chart
     :param dbpath: address to save
     :param granularity: 'M15','H1','H4','D','W','M'
     :param instrument: instrument to get
@@ -203,6 +203,19 @@ def Split(word,*seps,outType='str'):
     # else: return []
 
 def read_sql(table,code=None,dbpath=None,con=None):
+    '''
+    only 1 is in need
+        :param table:
+        :param code:
+        :param dbpath:
+    :param con:
+    :return:
+
+    How to use:
+        data=read_sql('D',code='EUR_USD')
+        data=read_sql('D',dbpath='.../.../EUR_USD/.db')
+        data=read_sql('D',con=sqlite3.connect('.../.../EUR_USD/.db'))
+    '''
     close=False
 
     if dbpath is None:
@@ -220,6 +233,22 @@ def read_sql(table,code=None,dbpath=None,con=None):
     return data
 
 def save_sql(data,table,dbpath=None,con=None,if_exists='replace'):
+    '''
+
+    :param data:
+    :param table:
+    :param dbpath:
+    :param con:
+    :param if_exists:
+    :return:
+
+    How to use:
+        data=getInstrumentHistory(.....)
+        save_sql(data,'D',code='EUR_USD')
+        save_sql(data,'D',dbpath='.../.../EUR_USD/.db')
+        save_sql(data,'D',con=sqlite3.connect('.../.../EUR_USD/.db'))
+
+    '''
     close=False
     if con is None:
         con=sqlite3.connect(dbpath)
@@ -234,6 +263,10 @@ def save_sql(data,table,dbpath=None,con=None,if_exists='replace'):
         con.close()
 
 def readInsts():
+    '''
+
+    :return: list of instruments : ['EUR_USD','GBP_USD',...]
+    '''
     path='%s/%s' % (folder,instruments)
     file=open(path)
     lines=file.readlines()
@@ -389,6 +422,25 @@ def getCalendar(instrument,period=31536000,client=opClient):
     return calendar.set_index('time')
 
 def createFactorsTable(instrument=None,dbpath=None,con=None,**factors):
+    '''
+    Only have to input on of these 3:
+        :param instrument:
+        :param dbpath:
+        :param con:
+    :param factors: No use temporarily
+    :return:
+
+    How to use:
+        createFactorsTable(instrument='EUR_USD')
+        -------------------------------------------------------------
+        createFactorsTable(dbpath='E:/FinanceData/Oanda/EUR_USD.db')
+        -------------------------------------------------------------
+        con=sqlite3.connect('E:/FinanceData/Oanda/EUR_USD.db')
+        createFactorsTable(con=con)
+        con.close()
+
+    '''
+
     close=False
 
     if len(factors)==0:
@@ -479,12 +531,20 @@ def createFactorsTable(instrument=None,dbpath=None,con=None,**factors):
 
 
 def changeData(table,instrument=None,dbpath=None):
+    '''
+    Do not run this function!!!
+    It's only for changing static data temporarily
+
+    :param table:
+    :param instrument:
+    :param dbpath:
+    :return:
+    '''
 
     if dbpath is None:
         dbpath='%s/%s.db' % (savePath,instrument)
 
     con=sqlite3.connect(dbpath)
-
 
     try:
         data=read_sql(table,con=con)
@@ -498,7 +558,14 @@ def changeData(table,instrument=None,dbpath=None):
 
     con.close()
 
+
 def factorToScore(insts):
+    '''
+
+    :param insts: list of instruments:['EUR_USD','USD_CAD',....]
+    :return: print(pandas.DataFrame(scoretable of all instruments in insts))
+    '''
+
     score=[]
     for i in insts:
         data=read_sql('Factors',i)
@@ -566,8 +633,7 @@ def factorToScore(insts):
 
     data=pandas.DataFrame(score,columns=[
         'Symbol','S-L_diff','Position_diff','hist & hist_diff','C-MA60 && C-MA130',
-        'Momentum 60 & Momentum 130','RSI','ADX & ADX_Momentum','ATR:ATR*0.35','score'
-    ])
+        'Momentum 60 & Momentum 130','RSI','ADX & ADX_Momentum','ATR:ATR*0.35','score'])
     print(data)
 
 def updateCOT(instrument=None,dbpath=None,con=None):
@@ -632,10 +698,3 @@ if __name__ == '__main__':
     #
     #
     # last=datetime.datetime(*t)
-
-
-
-    # for i in Insts:
-    #     dbpath='%s/%s.db' % (savePath,i)
-    #     print(dbpath)
-    #     update(dbpath,'D')
