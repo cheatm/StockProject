@@ -21,9 +21,32 @@ class Account():
     def sell(self,code,lots,price):
         pass
 
+class System():
+
+    entry={}
+
+    def __init__(self,entry=None,account=Account()):
+
+        self.acc=account
+        self.setEntry(entry)
+
+    def setEntry(self,entry):
+        for k in entry.keys():
+            self.entry[k]=entry[k]
+
+        print(self.entry)
+
+    def run(self):
+        for e in self.entry:
+            e()
+
+def def1():
+    print('def1')
+
 
 if __name__ == '__main__':
-    acc=Account()
-    print(acc.holding)
-    acc.buy('0700.hk',100,100)
-    print(acc.holding)
+    system=System()
+    system.setEntry({'def1':def1})
+
+
+    pass
