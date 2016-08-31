@@ -1,5 +1,6 @@
 import oandaData
 import pandas
+import indicator
 
 
 class Account():
@@ -18,8 +19,8 @@ class Account():
 
         def close(self,price,cls=None):
 
-            self.closeprice=price
-            self.profit=(self.closeprice-self.openPrice)*self.lots
+            self.closePrice=price
+            self.profit=(self.closePrice-self.openPrice)*self.lots
 
         def refresh(self,price,cls):
 
@@ -114,7 +115,7 @@ class Account():
 
             o.refresh(price,self)
 
-    def showOrders(self):
+    def getOrders(self):
         attrs=['ticket','code','openPrice','lots','stoplost','takeprofit','deposit']
         orders=[]
         for  o in self.orders:
@@ -122,8 +123,19 @@ class Account():
             for a in attrs:
                 order.append(getattr(o,a))
             orders.append(order)
-        print(pandas.DataFrame(orders,columns=attrs))
 
+        return pandas.DataFrame(orders,columns=attrs)
+
+    def getHistoryOrders(self):
+        attrs=['ticket','code','openPrice','closePrice','lots','stoplost','takeprofit','deposit']
+        orders=[]
+        for  o in self.ordersHistory:
+            order=[]
+            for a in attrs:
+                order.append(getattr(o,a))
+            orders.append(order)
+
+        return pandas.DataFrame(orders,columns=attrs)
 
 
 class System():
@@ -148,6 +160,56 @@ class System():
             for k in exit.keys():
                 self.Exit[k]=exit[k]
 
+    # def setStoplost(self,stoplost):
+
+    def importData(self,name,data):
+        self.data[name]=data
+
+    def getind(self,name,code,shift=0,out=None,time=None,input=['time','closeBid'],**kwargs):
+        '''
+        :param name: name of indicator which can be find in indicator.py
+        :param code: code of data which has already been input into self.data
+        :param shift: int or list[int]
+        :param out: int or str
+        :param input: list[str]
+        :param kwargs: params for the indicator to be used
+
+        :return:
+            if out is None:
+                return indicator with all columns : DataFrame
+            else:
+                if shift is int:
+                    return single value with specific shift and column : float
+                elif shift is list[int]:
+                    return indicator of specific column : Series
+
+        '''
+
+        if time is None:
+            time=self.time
+        In=[]
+        symbol=self.data[code]
+        symbol=symbol[symbol['time']<=time]
+        for i in input:
+            In.append(symbol[i])
+
+        ind=getattr(indicator,name)(*In,**kwargs)
+
+        if isinstance(shift,list):
+            for s in range(0,len(shift)):
+                shift[s]=ind.index.tolist()[-shift[s]-1]
+        else:
+            shift=ind.index.tolist()[-shift-1]
+
+        if out is not None:
+            if isinstance(out,int):
+                return ind.loc[shift][ind.columns[out]]
+
+            if isinstance(out,str):
+                return ind.loc[shift][out]
+
+        return ind.loc[shift]
+
     def run(self):
         for k in self.Entry.keys():
             func=self.Entry[k]
@@ -155,24 +217,32 @@ class System():
 
 
 def def3(cls):
-    print(cls.data)
+    t=cls.data['EUR_USD'].get_value(90,'time')
+    ma=cls.getind('MACD','EUR_USD',shift=[0,1,2,3,4],time=t)
 
 
-if __name__ == '__main__':
-    # system=System()
-    #
-    # system.setEntry({'def3':def3})
-    # system.run()
+    print(ma)
 
+
+def accountTest():
     acc=Account()
     acc.openOrder('EUR_USD',10000,1,9990,10300)
     acc.openOrder('EUR_USD',10000,-1,10090,9890)
 
-    acc.showOrders()
 
     acc.closeOrder(9990,pos=1)
     acc.refreshOrders(10400)
 
+def systemTest():
+    data=oandaData.read_sql('D','EUR_USD')
+
+    system=System()
+    system.importData('EUR_USD',data)
+    system.setEntry({'def3':def3})
+    system.run()
 
 
-    pass
+if __name__ == '__main__':
+    systemTest()
+
+

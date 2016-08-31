@@ -34,6 +34,7 @@ def MA(time,price,period=60,matype=0,index=None,compare=False):
                 ma[i]=price[i]-v
 
     data=pandas.DataFrame({'time':time,name:ma}).dropna()
+    data.insert(0,'time',data.pop('time'))
     if index is not None:
         return data.set_index(index)
 
@@ -52,6 +53,7 @@ def MACD(time,price,fast=12,slow=26,signal=9,index=None,out=None):
     d['time']=time
 
     data=pandas.DataFrame(d).dropna()
+    data.insert(0,'time',data.pop('time'))
 
     if index is not None:
         return data.set_index(index)
@@ -62,7 +64,7 @@ def ATR(time,high,low,close,period=14,index=None):
 
     atr=talib.ATR(numpy.array(high),numpy.array(low),numpy.array(close),timeperiod=period)
     data=pandas.DataFrame({'ATR%s' % period:atr,'time':time}).dropna()
-
+    data.insert(0,'time',data.pop('time'))
     if index is not None:
         return data.set_index(index)
 
@@ -72,7 +74,7 @@ def ADX(time,high,low,close,period=14,index=None):
 
     adx=talib.ADX(numpy.array(high),numpy.array(low),numpy.array(close),timeperiod=period)
     data=pandas.DataFrame({'ADX%s' % period:adx,'time':time}).dropna()
-
+    data.insert(0,'time',data.pop('time'))
     if index is not None:
         return data.set_index(index)
 
@@ -82,7 +84,7 @@ def RSI(time,price,period=14,index=None):
 
     rsi=talib.RSI(numpy.array(price),timeperiod=period)
     data=pandas.DataFrame({'RSI%s' % period:rsi,'time':time}).dropna()
-
+    data.insert(0,'time',data.pop('time'))
     if index is not None:
         return data.set_index(index)
 
@@ -94,7 +96,8 @@ def Correlation(price1,price2,time=None,period=30):
         return 0
 
     corr=talib.CORREL(numpy.array(price1),numpy.array(price2),timeperiod=period)
-    data=pandas.DataFrame(corr,index=time).dropna()
+    data=pandas.DataFrame({'time':time,'corr':corr}).dropna()
+    data.insert(0,'time',data.pop('time'))
     # if time is not None and len(time)==len(price1):
     #     data=pandas.DataFrame(corr,index=time).dropna()
     #
