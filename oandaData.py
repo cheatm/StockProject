@@ -684,11 +684,13 @@ def updateHPR(instrument=None,dbpath=None,con=None):
 if __name__ == '__main__':
 
     Insts=readInsts()
-    # update(instrument=Insts[0])
 
-    for i in Insts[1:]:
 
+
+    for i in Insts:
+        print(i)
         update(instrument=i)
+        updateHPR(i)
 
     # factor=createFactorsTable(Insts[0])
     # print(factor)

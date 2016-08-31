@@ -12,7 +12,4 @@ def Stest():
 
 
 if __name__ == '__main__':
-    # pandas.DataFrame().get()
-
     pass
-

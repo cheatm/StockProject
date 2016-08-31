@@ -7,7 +7,7 @@ class Account():
 
     class order():
 
-        def __init__(self,ticket,code,openPrice,lots,lever,stoplost=0,takeprofit=0):
+        def __init__(self,ticket,code,openPrice,lots,lever,time,stoplost=0,takeprofit=0):
 
             self.code=code
             self.openPrice=openPrice
@@ -16,25 +16,29 @@ class Account():
             self.takeprofit=takeprofit
             self.ticket=ticket
             self.deposit=abs(openPrice*lots/lever)
+            self.openTime=time
 
-        def close(self,price,cls=None):
-
+        def close(self,price,time,cls=None):
+            self.closeTime=time
             self.closePrice=price
             self.profit=(self.closePrice-self.openPrice)*self.lots
+
 
         def refresh(self,price,cls):
 
             profit=(price-self.openPrice)*self.lots
 
-            if profit>(self.takeprofit-self.openPrice)*self.lots:
-                cls.closeOrder(ticket=self.ticket,price=self.takeprofit)
+            if self.takeprofit != 0:
+                if profit>(self.takeprofit-self.openPrice)*self.lots:
+                    cls.closeOrder(ticket=self.ticket,price=self.takeprofit)
 
-                return
+                    return
 
-            if profit<(self.stoplost-self.openPrice)*self.lots:
-                cls.closeOrder(ticket=self.ticket,price=self.stoplost)
+            if self.stoplost != 0:
+                if profit<(self.stoplost-self.openPrice)*self.lots:
+                    cls.closeOrder(ticket=self.ticket,price=self.stoplost)
 
-                return
+                    return
 
             self.close=price
             self.profit=profit
@@ -42,6 +46,7 @@ class Account():
 
     orders=[]
     ordersHistory=[]
+    Time=0
 
     def __init__(self,initCash=1000000,lever=1):
         '''
@@ -78,7 +83,7 @@ class Account():
         if ticket is not None:
             for i in range(0,len(self.orders)):
                 if self.orders[i].ticket==ticket:
-                    self.orders[i].close(price)
+                    self.orders[i].close(price,self.Time)
                     self.cash=self.cash+self.orders[i].profit+self.orders[i].deposit
                     self.ordersHistory.append(self.orders[i])
                     self.orders.pop(i)
@@ -102,7 +107,7 @@ class Account():
         if ticket is None:
             ticket=self.nextTicket
 
-        order=self.order(ticket,code,price,lots,self.lever,stoplost,takeprofit)
+        order=self.order(ticket,code,price,lots,self.lever,self.Time,stoplost,takeprofit)
         self.orders.append(order)
         self.cash=self.cash-order.deposit
 
@@ -110,10 +115,12 @@ class Account():
 
 
 
-    def refreshOrders(self,price):
+    def reFresh(self,price,time):
+        self.Time=time
         for o in self.orders.copy():
 
             o.refresh(price,self)
+
 
     def getOrders(self):
         attrs=['ticket','code','openPrice','lots','stoplost','takeprofit','deposit']
@@ -155,14 +162,37 @@ class System():
             for k in entry.keys():
                 self.Entry[k]=entry[k]
 
+    def entryOrder(self,code,lots,direction):
+        for k in self.Entry.keys():
+            func=self.Entry[k]
+            f=func(self)
+            if f != direction:
+                return 0
+
+        if direction==1:
+            price=self.data[self.code]['closeAsk']
+            self.acc.openOrder(code,price,lots)
+        elif direction==-1:
+            price=self.data[self.code]['closeBid']
+            self.acc.openOrder(code,price,-lots)
+
+
     def setExit(self,exit):
         if exit is not None:
             for k in exit.keys():
                 self.Exit[k]=exit[k]
 
+    def exitOrder(self):
+        for k in self.Exit.keys():
+            func=self.Exit[k]
+            f=func(self)
+
+
     # def setStoplost(self,stoplost):
 
-    def importData(self,name,data):
+    def importData(self,name,data,maincode=False):
+        if maincode:
+            self.code=name
         self.data[name]=data
 
     def getind(self,name,code,shift=0,out=None,time=None,input=['time','closeBid'],**kwargs):
@@ -211,9 +241,15 @@ class System():
         return ind.loc[shift]
 
     def run(self):
-        for k in self.Entry.keys():
-            func=self.Entry[k]
-            func(self)
+        for i in self.data[self.code].index:
+            self.time=self.data[self.code].get_value(i,'time')
+
+
+            self.entryOrder(self.code,lots=100)
+            self.exitOrder()
+
+
+
 
 
 def def3(cls):
@@ -231,7 +267,7 @@ def accountTest():
 
 
     acc.closeOrder(9990,pos=1)
-    acc.refreshOrders(10400)
+    acc.reFresh(10400,100)
 
 def systemTest():
     data=oandaData.read_sql('D','EUR_USD')
