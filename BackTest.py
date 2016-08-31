@@ -114,14 +114,6 @@ class Account():
         self.nextTicket=ticket+1
 
 
-
-    def reFresh(self,price,time):
-        self.Time=time
-        for o in self.orders.copy():
-
-            o.refresh(price,self)
-
-
     def getOrders(self):
         attrs=['ticket','code','openPrice','lots','stoplost','takeprofit','deposit']
         orders=[]
@@ -182,13 +174,19 @@ class System():
             for k in exit.keys():
                 self.Exit[k]=exit[k]
 
-    def exitOrder(self):
+    def exitOrder(self,order):
         for k in self.Exit.keys():
             func=self.Exit[k]
             f=func(self)
+            if f==-1:
+                price=self.data[self.code]['closeAsk']
+                if order.lots<0:
+                    self.acc.closeOrder(ticket=order.ticket,price=price)
+            elif f==1:
+                price=self.data[self.code]['closeBid']
+                if order.lots>0:
+                    self.acc.closeOrder(ticket=order.ticket,price=price)
 
-
-    # def setStoplost(self,stoplost):
 
     def importData(self,name,data,maincode=False):
         if maincode:
@@ -240,13 +238,24 @@ class System():
 
         return ind.loc[shift]
 
+    def refreshAccount(self,time,price):
+        self.acc.Time=time
+        for i in range(0,len(self.acc.orders)):
+            for k in self.data.keys():
+                if self.acc.orders[i].code==k:
+                    pass
+
+
     def run(self):
         for i in self.data[self.code].index:
             self.time=self.data[self.code].get_value(i,'time')
 
 
-            self.entryOrder(self.code,lots=100)
-            self.exitOrder()
+            self.entryOrder(self.code,lots=100,direction=1)
+
+            for o in self.acc.orders:
+
+                self.exitOrder(o)
 
 
 
@@ -258,6 +267,7 @@ def def3(cls):
 
 
     print(ma)
+    return 0
 
 
 def accountTest():
@@ -265,9 +275,7 @@ def accountTest():
     acc.openOrder('EUR_USD',10000,1,9990,10300)
     acc.openOrder('EUR_USD',10000,-1,10090,9890)
 
-
     acc.closeOrder(9990,pos=1)
-    acc.reFresh(10400,100)
 
 def systemTest():
     data=oandaData.read_sql('D','EUR_USD')
