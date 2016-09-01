@@ -713,9 +713,47 @@ class RRG_M(QtGui.QMainWindow):
         size=self.geometry()
         self.move(screen.width()/2-size.width()/2,screen.height()/2-size.height()/2)
 
-    def importMomentum(self,name,time,short,long):
-        self.data[name]=pandas.DataFrame({'time':time,'short':short,'long':long})
-        print(self.data[name])
+    def importData(self,name,time=None,x=None,y=None,DF=None,color=None):
+        '''
+
+        :param name:
+        :param time: list of time
+        :param x: list of numbers on x axis
+        :param y: list of numbers on y axis
+        :param DF:
+            DataFrame() with 3 columns and it will be transform to ['time','x','y']
+            sample:
+                          time    RS_Ratio   momentum5
+                5   1471190400  100.184223  101.723444
+                6   1471276800  100.421118  101.633165
+                7   1471363200  100.868189  102.140967
+                8   1471449600  100.920851  102.770772
+                9   1471536000  100.341464  101.229403
+
+
+
+        :param color:
+        :return:
+        '''
+        if DF is None:
+            if len(time)!=x or len(time)!=y:
+                print('length not equal')
+                return 0
+
+            if self.period>len(time):
+                self.period=len(time)
+
+            self.data[name]=pandas.DataFrame({'time':time,'x':x,'y':y})
+        else:
+            if self.period>len(DF.index):
+                self.period=len(DF.index)
+
+            DF.columns=['time','x','y']
+            self.data[name]=DF
+
+        if color is None:
+            l=len(self.graphColor)
+            self.graphColor[name]=self.colors[l]
 
     def importPrice(self,name,time,price,short=60,long=130,color=None):
         '''
@@ -733,11 +771,11 @@ class RRG_M(QtGui.QMainWindow):
 
         shortmom=indicator.momentum(time,price,short)
         longmom=indicator.momentum(time,price,long)
-        shortmom.columns=['time','short']
-        longmom.columns=['time','long']
+        shortmom.columns=['time','x']
+        longmom.columns=['time','y']
 
 
-        self.data[name]=shortmom.merge(longmom,how='inner')
+        self.data[name]=shortmom.merge(longmom,how='inner',on='time')
 
         if color is None:
             l=len(self.graphColor)
@@ -765,7 +803,7 @@ class RRG_M(QtGui.QMainWindow):
         Min=[]
         for v in self.Graph.values():
 
-            for c in ['short','long']:
+            for c in ['x','y']:
                 Max.append(max(v[c].tolist()))
                 Min.append(min(v[c].tolist()))
 
@@ -782,8 +820,8 @@ class RRG_M(QtGui.QMainWindow):
             points=[]
             for i in graph.index:
 
-                x=(graph.get_value(i,'long')-100)/edge*halfX
-                y=(graph.get_value(i,'short')-100)/edge*halfY
+                x=(graph.get_value(i,'x')-100)/edge*halfX
+                y=(graph.get_value(i,'y')-100)/edge*halfY
 
                 points.append(QtCore.QPointF(x,y))
 
@@ -817,8 +855,8 @@ class RRG_M(QtGui.QMainWindow):
         for k in self.Graph.keys():
 
             name="%s:%s,%s" % (k,
-                               int(self.Graph[k]['long'].tolist()[-1]*100)/100,
-                               int(self.Graph[k]['short'].tolist()[-1]*100)/100)
+                               int(self.Graph[k]['x'].tolist()[-1]*100)/100,
+                               int(self.Graph[k]['y'].tolist()[-1]*100)/100)
             self.drawLines(event,qp,name,self.Graph[k]['QPoint'],self.graphColor[k])
 
         pass

@@ -2,12 +2,13 @@ import pandas
 import tushare as ts
 import time,os,requests,re
 import sqlite3,random
+import indicator
 
 
 folder='Data'
 folder2='E:/FinanceData/Data'
-DataBase='StockData.db'
-dbPath='%s/%s' % (folder,DataBase)
+
+
 savePath=open('ini/StockSavePath.txt').read()
 
 HKindex=['HSI','HSCEI','HSC','HSF','HSCCI','HSP','HSU']
@@ -24,10 +25,14 @@ def setToken(token):
 def getIndexData(tick):
     print('Requiring index %s' % tick)
     data=mkt.MktIdxd(ticker=tick,field='ticker,tradeDate,openIndex,lowestIndex,highestIndex,closeIndex')
-
+    data.pop('ticker')
+    t=[]
+    for i in data['tradeDate']:
+        t.append(time.mktime(time.strptime(i,'%Y-%m-%d')))
+    data.insert(1,'time',t)
     return(data)
 
-def readIndexData(tick,update=False,f=folder):
+def readIndexData(tick,update=False,f=savePath):
     createFolder(f)
     path='%s/%s.xlsx' % (f,tick)
     if os.path.exists(path):
@@ -127,7 +132,7 @@ def saveStockData(table,Data,db=None,con=None,if_exists='replace'):
         con.close()
 
 
-def readStockData(table,db=None,con=None):
+def readStockData(table,code=None,db=None,con=None):
     '''
 
     :param name: table name in the database
@@ -137,12 +142,16 @@ def readStockData(table,db=None,con=None):
     :return:
     '''
 
+    if db is None:
+        db='%s/%s.db' % (savePath,code)
+
+    print(db)
     close=False
     if con is None:
         con=sqlite3.connect(db)
         close=True
 
-    data=pandas.read_sql('''select * FROM "%s"''' % table,con)
+    data=pandas.read_sql('''select * FROM %s''' % table,con)
 
     if(close):
         con.close()
@@ -168,9 +177,8 @@ def changeDBdata(table,db=None,con=None):
     if close:
         con.close()
 
-def updateAllStock(pathFolder):
+def updateAllStock(pathFolder=savePath):
     table_names=open('ini/HKStockList.txt').read().split(',')
-
 
     for name in table_names:
 
@@ -315,10 +323,16 @@ def getInvestingStockAddress(text):
 if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
 
-    updateAllStock(savePath)
+    # updateAllStock(savePath)
 
-    # data=getHKStockData('0001.hk',a=7,b=20,c=2016)
-    # print(data)
+    dbpath='%s/%s.db' % (savePath,'HKindex')
+    con=sqlite3.connect(dbpath)
+    for i in HKindex:
+        print(i)
+        data=getIndexData(i)
+        saveStockData(i,data.set_index('time'),con=con)
+    con.close()
+
     pass
 
 

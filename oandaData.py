@@ -674,11 +674,9 @@ def updateHPR(instrument=None,dbpath=None,con=None):
     last=read_sql('HPR',con=con)
 
     new=getHistoricalPositionRatios(instrument,start=last['time'].tolist()[-1])
-    print(new)
+
     new=last.drop(last.index.tolist()[-1]).set_index('time').append(new)
 
-
-    print(new)
     save_sql(new,'HPR',con=con)
 
 if __name__ == '__main__':

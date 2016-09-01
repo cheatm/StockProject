@@ -1,7 +1,7 @@
 import pandas
 import numpy,talib
 from talib import abstract
-import time,datetime
+import time,datetime,math
 
 folder='ini'
 fast=12
@@ -161,7 +161,32 @@ def MOMENTUM(candle,N,price='closePrice',dateIndex='tradeDate',timeFormat='%Y-%m
 
     return (pandas.DataFrame(data,columns=['time',dateIndex,'MOMENTUM']) )
 
+def RS_Ratio(time,data,basic,m=5):
+    data=numpy.array(data)
+    basic=numpy.array(basic)
+    if len(time)!=len(data) or len(time)!=len(basic):
+        print('length not equal: %s, %s, %s,' % (len(time),len(data),len(basic)))
+        return 0
 
+    X=[]
+    for i in range(0,len(time)):
+        X.append(data[i]/basic[i])
+
+    npx=numpy.array(X)
+
+    mean=npx.mean()
+    std=npx.std()
+
+    for i in range(0,len(X)):
+        X[i]=(X[i]-mean)/std+100
+
+    out=pandas.DataFrame({'RS_Ratio':X,'time':time})
+    out.insert(0,'time',out.pop('time'))
+
+    moment=momentum(time,X,period=m)
+
+
+    return out.merge(moment,how='outer',on='time').dropna()
 
 if __name__ == '__main__':
     pass
