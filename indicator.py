@@ -188,5 +188,30 @@ def RS_Ratio(time,data,basic,m=5):
 
     return out.merge(moment,how='outer',on='time').dropna()
 
+def sentiment(time,price,n=14):
+    if len(time)!=len(price):
+        print('length not equal')
+        return 0
+
+    time=numpy.array(time)
+    price=numpy.array(price)
+    index=[]
+    for i in range(0,n):
+        index.append(None)
+
+    for i in range(n,len(time)):
+        high=max(price[i-n:i+1])
+        low=min(price[i-n:i+1])
+        index.append(100*(price[i]-low)/(high-low))
+
+    out=pandas.DataFrame({'sentiment':index,'time':time})
+    out.dropna(inplace=True)
+    out.insert(0,'time',out.pop('time'))
+
+    return out
+
+
+
+
 if __name__ == '__main__':
     pass

@@ -38,7 +38,7 @@ def updateHKStock():
         pool.putRequest(workrequest)
 
     pool.wait()
-        
+
 
 if __name__ == '__main__':
     updateHKStock()
