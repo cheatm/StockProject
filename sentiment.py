@@ -43,11 +43,11 @@ def COTindex(*insts,n=14):
         date.append(datetime.fromtimestamp(t).date())
 
     out.insert(1,'date',date)
-
+    print('COT_sentiment')
     print(out.loc[out.index[-10]:])
 
 
 if __name__ == '__main__':
-    # showHPR_spr()
+    showHPR_spr()
     COTindex()
-    pass
+
