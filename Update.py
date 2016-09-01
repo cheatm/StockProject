@@ -1,6 +1,6 @@
 import oandaData as od
 import HKStock as hs
-import threading
+import threading,threadpool
 
 insts=od.readInsts()
 
@@ -28,8 +28,17 @@ def updateHoldings():
             t.start()
 
 def updateHKStock():
-    hs.updateAllStock()
+    table_names=open('ini/HKStockList.txt').read().split(',')
+    pool=threadpool.ThreadPool(5)
+    for name in table_names:
 
+        path='%s/%s.db' % (hs.savePath,name)
+        print(path)
+        workrequest=threadpool.WorkRequest(hs.updateStockData,[name])
+        pool.putRequest(workrequest)
+
+    pool.wait()
+        
 
 if __name__ == '__main__':
     updateHKStock()

@@ -189,6 +189,7 @@ def updateAllStock(pathFolder=savePath):
         con.close()
 
 
+
 def updateStockData(code,table='Day',db=None,con=None):
     '''
 
@@ -197,6 +198,9 @@ def updateStockData(code,table='Day',db=None,con=None):
     :param con:
     :return:
     '''
+
+    if db is None:
+        db='%s/%s.db' % (savePath,code)
 
     close=False
     if con==None:
