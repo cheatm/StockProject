@@ -852,12 +852,20 @@ class RRG_M(QtGui.QMainWindow):
         qp.scale(1,-1)
         self.drawBackGround(event,qp,self.BackGround)
 
+        size=10
+        c=0
         for k in self.Graph.keys():
 
             name="%s:%s,%s" % (k,
                                int(self.Graph[k]['x'].tolist()[-1]*100)/100,
                                int(self.Graph[k]['y'].tolist()[-1]*100)/100)
             self.drawLines(event,qp,name,self.Graph[k]['QPoint'],self.graphColor[k])
+            labelPoint=QtCore.QPointF(-self.width()/2+self.leftedge,self.height()/2-self.highedge-c*size)
+            self.drawLabel(event,qp,name,labelPoint,size=size)
+            c=c+1.1
+
+
+
 
         pass
 
@@ -874,10 +882,10 @@ class RRG_M(QtGui.QMainWindow):
 
         self.drawArrow(event,qp,points[index[-2]],points[index[-1]])
 
-        self.drawLabel(event,qp,name,points[index[-1]])
 
-    def drawLabel(self,event,qp,name,point):
-        font=QtGui.QFont('label',10)
+
+    def drawLabel(self,event,qp,name,point,size=10):
+        font=QtGui.QFont('label',size)
         qp.setFont(font)
 
         actual=QtCore.QPointF(point.x()+10,-point.y()+10)
