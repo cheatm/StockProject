@@ -80,11 +80,14 @@ def ADX(time,high,low,close,period=14,index=None):
 
     return data
 
-def RSI(time,price,period=14,index=None):
+def RSI(time,price,period=14,index=None,columns=None):
 
     rsi=talib.RSI(numpy.array(price),timeperiod=period)
     data=pandas.DataFrame({'RSI%s' % period:rsi,'time':time}).dropna()
     data.insert(0,'time',data.pop('time'))
+    if columns is not None:
+        data.columns=columns
+
     if index is not None:
         return data.set_index(index)
 

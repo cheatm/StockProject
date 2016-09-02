@@ -149,6 +149,7 @@ def update(*granularity,dbpath=None,instrument=None,con=None):
     :return: None
     '''
 
+    error=[]
     close=False
 
     if dbpath is None:
@@ -178,9 +179,11 @@ def update(*granularity,dbpath=None,instrument=None,con=None):
             new[new.index>lastRecord[0]].to_sql(g,con,if_exists='append')
         except Exception as e:
             print('error_181:',e)
+            error.append(g)
 
     if close:
         con.close()
+    return  error
 
 def Split(word,*seps,outType='str'):
 
