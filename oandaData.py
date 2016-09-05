@@ -1,7 +1,7 @@
 from pyoanda import Client, TRADE
 from oandapy import oandapy
 import pandas,time,datetime,math
-import sqlite3
+import sqlite3,os,threadpool
 import indicator,numpy
 
 
@@ -35,7 +35,7 @@ def creatDefaultClient(client=defautClient):
 
 def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', count=None,
             daily_alignment=0, alignment_timezone='Etc/UTC',
-            weekly_alignment="Monday", start=None,end=None,client=defautClient,recursion=False):
+            weekly_alignment="Monday", start=None,end=None,client=defautClient,recursion=False,con=None):
     '''
 
     :param instrument:
@@ -90,12 +90,16 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
             pdata=pandas.DataFrame(data['candles'])
 
         except Exception as e:
-            print('Error',e)
+            print('Error:93',e)
             # 如果所需candle数 > 5000 则从start开始每5000根获取一次并合并数据，recursion=True
             if '5000' in str(e):
                 data=getInstrumentHistory(instrument,candle_format=candle_format,granularity=granularity, count=5000,
                                         daily_alignment=daily_alignment, alignment_timezone=alignment_timezone,
                                         weekly_alignment=weekly_alignment, start=start,end=None,client=client,recursion=True)
+                if con is not None:
+                    save_sql(data,granularity,con=con)
+                    return 0
+
                 return(data)
             else : return 0
 
@@ -136,6 +140,10 @@ def getInstrumentHistory(instrument,candle_format="bidask",granularity='D', coun
                                     weekly_alignment=weekly_alignment, start=startTime,end=end,client=client,recursion=True)
 
             return pdata.append(new)
+
+    if con is not None:
+        save_sql(pdata,granularity,con=con)
+        return 0
 
     return (pdata)
 
@@ -281,7 +289,7 @@ def readInsts():
 
     return out
 
-def getCommitmentsOfTraders(instrument,client=opClient,start=None):
+def getCommitmentsOfTraders(instrument,client=opClient,start=None,con=None):
     '''
 
     :param instrument:
@@ -340,10 +348,13 @@ def getCommitmentsOfTraders(instrument,client=opClient,start=None):
 
     data.set_index('time',inplace=True)
 
+    if con is not None:
+        save_sql(data,'COT',con=con)
+        return 0
 
     return data
 
-def getHistoricalPositionRatios(instrument,period=31536000,client=opClient,start=None):
+def getHistoricalPositionRatios(instrument,period=31536000,client=opClient,start=None,con=None):
     '''
 
     :param instrument:
@@ -402,6 +413,10 @@ def getHistoricalPositionRatios(instrument,period=31536000,client=opClient,start
     data.insert(3,'short_position_ratio',spr)
     data.insert(4,'position',position)
     data.insert(5,'position_diff',posdiff)
+
+    if con is not None:
+        save_sql(data.set_index('time'),'HPR',con=con)
+        return 0
 
     return data.set_index('time')
 
@@ -682,22 +697,87 @@ def updateHPR(instrument=None,dbpath=None,con=None):
 
     save_sql(new,'HPR',con=con)
 
+def importNewInstrument(instrument,*granularity,path=savePath,con=None):
+    '''
+
+    :param instrument: 'EUR_USD', 'AUD_USD' ...
+    :param granularity: 'M15','H1','H4','D','W','M'
+        If import nothing: granularity=['M15','H1','H4','D','W','M']
+    :param path: default to savepath oanda
+    :param con: None
+        Will be created by path and instrument
+    :return:
+        Automatically save history data and COT and HPR data of a new instrument
+        witch does not have any data in path 'oanda'
+    '''
+
+
+    if len(granularity) ==0:
+        granularity=['M15','H1','H4','D','W','M']
+
+    dbpath='%s/%s.db' % (path,instrument)
+    print(dbpath)
+
+    try:
+        con=sqlite3.connect(dbpath)
+    except :
+        os.makedirs(path,exist_ok=True)
+        time.sleep(1)
+        con=sqlite3.connect(dbpath)
+
+
+    start=datetime.date(1971,1,1).strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+    end=datetime.date.today().strftime("%Y-%m-%dT%H:%M:%S.%f%z")
+
+    pool=threadpool.ThreadPool(6)
+
+    def save(req,out):
+        kwds=req.kwds
+        if kwds is not None:
+            save_sql(out,kwds['granularity'],con=con)
+
+    for g in granularity:
+        wrequest=threadpool.WorkRequest(getInstrumentHistory,
+                                        kwds={'instrument':instrument,'granularity':g,
+                                        'start':start,'end':end},
+                                        callback=save)
+        # data=getInstrumentHistory(instrument,granularity=g,start=start,end=end)
+        pool.putRequest(wrequest)
+
+    def saveCOT(req,out):
+        save_sql(out,'COT',con=con)
+
+    pool.putRequest(
+        threadpool.WorkRequest(getCommitmentsOfTraders,[instrument],callback=saveCOT)
+    )
+
+    def saveHPR(req,out):
+        save_sql(out,'HPR',con=con)
+
+    pool.putRequest(
+        threadpool.WorkRequest(getHistoricalPositionRatios,[instrument],callback=saveHPR)
+    )
+
+    pool.wait()
+
+    factors=createFactorsTable(instrument,con=con)
+    save_sql(factors,'Factors',con=con)
+
+    con.close()
+
+
 if __name__ == '__main__':
 
     Insts=readInsts()
 
-
-
-    for i in Insts:
-        print(i)
-        update(instrument=i)
-        updateHPR(i)
+    importNewInstrument('NZD_USD')
+    # for i in Insts:
+    #     print(i)
+    #     update(instrument=i)
+    #     updateHPR(i)
 
     # factor=createFactorsTable(Insts[0])
     # print(factor)
 
     # last=read_sql('COT',code=Insts[0])['date'].tolist()[-1]
     # t=(Split(last,'-',' ',':',outType='int'))
-    #
-    #
-    # last=datetime.datetime(*t)

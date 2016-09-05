@@ -1,4 +1,3 @@
-__author__ = 'CaiMeng'
 
 import EconomicData
 import pandas
@@ -16,10 +15,12 @@ fullDBPath=file.read()+'/'+DBName
 file.close()
 
 now=time.time()
-today=time.localtime(now)
-todaystr=time.strftime('%Y/%m/%d',today)
-yesterday=time.localtime(now-86400)
-yesterdaystr=time.strftime('%Y/%m/%d',yesterday)
+today=datetime.date.today()
+todaystr=today.strftime('%Y/%m/%d')
+yesterday=datetime.date.today()-datetime.timedelta(1)
+yesterdaystr=yesterday.strftime('%Y/%m/%d')
+lastFriday=datetime.date.today()-datetime.timedelta(3-datetime.date.today().weekday())
+lastFridaystr=lastFriday.strftime('%Y/%m/%d')
 # test
 
 
@@ -139,10 +140,14 @@ def drawLine():
     pass
 
 if __name__ == '__main__':
-    # test()
+
     createDataBase()
 
-    saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
+
+    if today.weekday() is not 0:
+        saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
+    else:
+        saveYahooData(NASDAQ=lastFridaystr,HK=todaystr)
     # saveYahooData(NASDAQ=yesterdaystr)
     # saveYahooData(HK=todaystr)
 
