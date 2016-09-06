@@ -41,7 +41,7 @@ def updateHKStock():
 
 
 if __name__ == '__main__':
-    # updateInstrument()
+    updateInstrument()
     updateHoldings()
-    # updateHKStock()
+    updateHKStock()
     pass
