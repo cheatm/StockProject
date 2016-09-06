@@ -28,9 +28,7 @@ def callBack(req,out):
 
 if __name__ == '__main__':
     pool=threadpool.ThreadPool(5)
-    # request=threadpool.WorkRequest(t1,callback=callBack)
-    #
-    # pool.putRequest(request)
+
     pool.putRequest(
         threadpool.WorkRequest(t2,[1,2,3],{'a':1},callback=callBack)
     )

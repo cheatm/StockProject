@@ -256,8 +256,8 @@ def save_sql(data,table,dbpath=None,con=None,if_exists='replace'):
     How to use:
         data=getInstrumentHistory(.....)
         save_sql(data,'D',code='EUR_USD')
-        save_sql(data,'D',dbpath='.../.../EUR_USD/.db')
-        save_sql(data,'D',con=sqlite3.connect('.../.../EUR_USD/.db'))
+        save_sql(data,'D',dbpath='.../.../EUR_USD.db')
+        save_sql(data,'D',con=sqlite3.connect('.../.../EUR_USD.db'))
 
     '''
     close=False
@@ -654,7 +654,7 @@ def factorToScore(insts):
         'Momentum 60 & Momentum 130','RSI','ADX & ADX_Momentum','ATR:ATR*0.35','score'])
     print(data)
 
-def updateCOT(instrument=None,dbpath=None,con=None):
+def updateCOT(instrument,dbpath=None,con=None):
     close=False
 
     if dbpath is None:
@@ -664,16 +664,20 @@ def updateCOT(instrument=None,dbpath=None,con=None):
         con=sqlite3.connect(dbpath)
         close=True
 
-    last=read_sql('COT',con=con)
-    new=getCommitmentsOfTraders(instrument,start=last['publish'].tolist()[-1])
+    try:
+        last=read_sql('COT',con=con)
+        new=getCommitmentsOfTraders(instrument,start=last['publish'].tolist()[-1])
 
-    new=last.append(new)
-    save_sql(new,'COT',con=con)
+        new=last.append(new)
+        save_sql(new,'COT',con=con)
+    except:
+        data=getCommitmentsOfTraders(instrument)
+        save_sql(data,'COT',con=con)
 
     if close:
         con.close()
 
-def updateHPR(instrument=None,dbpath=None,con=None):
+def updateHPR(instrument,dbpath=None,con=None):
     insList=['AUD_JPY', 'AUD_USD', 'EUR_AUD', 'EUR_CHF', 'EUR_GBP', 'EUR_JPY','USD_CHF', 'USD_JPY',
              'EUR_USD', 'GBP_CHF', 'GBP_JPY', 'GBP_USD', 'NZD_USD', 'USD_CAD', 'XAU_USD', 'XAG_USD']
     if instrument not in insList:
@@ -689,13 +693,17 @@ def updateHPR(instrument=None,dbpath=None,con=None):
         con=sqlite3.connect(dbpath)
         close=True
 
-    last=read_sql('HPR',con=con)
+    try:
+        last=read_sql('HPR',con=con)
+        new=getHistoricalPositionRatios(instrument,start=last['time'].tolist()[-1])
+        new=last.drop(last.index.tolist()[-1]).set_index('time').append(new)
+        save_sql(new,'HPR',con=con)
+    except:
+        data=getHistoricalPositionRatios(instrument)
+        save_sql(data,'HPR',con=con)
 
-    new=getHistoricalPositionRatios(instrument,start=last['time'].tolist()[-1])
-
-    new=last.drop(last.index.tolist()[-1]).set_index('time').append(new)
-
-    save_sql(new,'HPR',con=con)
+    if close:
+        con.close()
 
 def importNewInstrument(instrument,*granularity,path=savePath,con=None):
     '''
@@ -717,6 +725,10 @@ def importNewInstrument(instrument,*granularity,path=savePath,con=None):
 
     dbpath='%s/%s.db' % (path,instrument)
     print(dbpath)
+    if os.path.exists(dbpath):
+        print(instrument,' data already exists \nPlease try update(), updateCOT() or updateHPR()')
+        return
+
 
     try:
         con=sqlite3.connect(dbpath)
@@ -741,7 +753,7 @@ def importNewInstrument(instrument,*granularity,path=savePath,con=None):
                                         kwds={'instrument':instrument,'granularity':g,
                                         'start':start,'end':end},
                                         callback=save)
-        # data=getInstrumentHistory(instrument,granularity=g,start=start,end=end)
+
         pool.putRequest(wrequest)
 
     def saveCOT(req,out):
@@ -779,5 +791,3 @@ if __name__ == '__main__':
     # factor=createFactorsTable(Insts[0])
     # print(factor)
 
-    # last=read_sql('COT',code=Insts[0])['date'].tolist()[-1]
-    # t=(Split(last,'-',' ',':',outType='int'))

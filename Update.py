@@ -18,14 +18,14 @@ def updateInstrument():
 
 def updateHoldings():
 
-    for i in insts[0:5]:
-        print(i)
-        thread=[]
-        thread.append(threading.Thread(target=od.updateCOT,name='cot',kwargs={'instrument':i}))
-        thread.append(threading.Thread(target=od.updateHPR,name='hpr',kwargs={'instrument':i}))
 
-        for t in thread:
-            t.start()
+    pool=threadpool.ThreadPool(5)
+
+    for i in insts[0:5]:
+        pool.putRequest(threadpool.WorkRequest(od.updateCOT,[i]))
+        pool.putRequest(threadpool.WorkRequest(od.updateHPR,[i]))
+
+    pool.wait()
 
 def updateHKStock():
     table_names=open('ini/HKStockList.txt').read().split(',')
@@ -41,7 +41,7 @@ def updateHKStock():
 
 
 if __name__ == '__main__':
-    updateInstrument()
+    # updateInstrument()
     updateHoldings()
     # updateHKStock()
     pass
