@@ -100,7 +100,7 @@ def getYahooData(proxy=None,html=None):
     ]
 
     # header=UAlist[random.randint(0,3)]
-    header=UAlist[0]
+    header=UAlist[3]
     print(header)
 
     # proxy={'http': 'http://182.38.24.70:8118'}

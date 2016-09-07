@@ -782,12 +782,5 @@ if __name__ == '__main__':
 
     Insts=readInsts()
 
-    importNewInstrument('NZD_USD')
-    # for i in Insts:
-    #     print(i)
-    #     update(instrument=i)
-    #     updateHPR(i)
 
-    # factor=createFactorsTable(Insts[0])
-    # print(factor)
 
