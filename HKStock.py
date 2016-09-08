@@ -329,14 +329,6 @@ if __name__ == '__main__':
 
     # updateAllStock(savePath)
 
-    dbpath='%s/%s.db' % (savePath,'HKindex')
-    con=sqlite3.connect(dbpath)
-    for i in HKindex:
-        print(i)
-        data=getIndexData(i)
-        saveStockData(i,data.set_index('time'),con=con)
-    con.close()
-
     pass
 
 

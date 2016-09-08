@@ -395,7 +395,9 @@ def getHistoricalPositionRatios(instrument,period=31536000,client=opClient,start
 
     timeList=[]
     for t in data['time']:
+        d=datetime.datetime.fromtimestamp(t)
         timeList.append(datetime.datetime.fromtimestamp(t))
+
 
     spr=[]
     position=[]
@@ -781,6 +783,7 @@ def importNewInstrument(instrument,*granularity,path=savePath,con=None):
 if __name__ == '__main__':
 
     Insts=readInsts()
-
+    data=getHistoricalPositionRatios('EUR_USD')
+    print(data)
 
 
