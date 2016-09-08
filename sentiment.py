@@ -136,8 +136,9 @@ if __name__ == '__main__':
             if x!=y:
                 X=od.read_sql('D',x)
                 Y=od.read_sql('D',y)
-                corr=numpy.corrcoef(X['closeBid'].tolist()[-100:],Y['closeBid'].tolist()[-100:])
+                corr=numpy.corrcoef([X['closeBid'].tolist()[-100:],Y['closeBid'].tolist()[-100:]])
                 l.append(corr[0,1])
+
             else:
                 l.append(1)
         v.append(l)
