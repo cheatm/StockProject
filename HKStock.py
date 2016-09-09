@@ -215,7 +215,7 @@ def updateStockData(code,table='Day',db=None,con=None):
         print('already updated')
         return (0)
 
-    lastdate=last[0].split('-')
+    lastdate=last[1].split('-')
     print(lastdate)
     try:
 

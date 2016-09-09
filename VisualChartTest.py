@@ -3,6 +3,7 @@ import sys,pandas,time
 import SaveData
 import HKStock,indicator,DataTransform
 from PyQt4 import QtGui,QtCore
+import GUI.StockChart as ST
 
 def showChart():
     app=QtGui.QApplication(sys.argv)
@@ -90,7 +91,20 @@ def showStockChart():
     stockChart.show()
     sys.exit(app.exec_())
 
+def GUIStockChart():
+    app=QtGui.QApplication(sys.argv)
+    stockChart=ST.StockChart()
+    data=HKStock.readStockData('Day','0700.hk')
+    # print(data[['time','Open','High','Low','Close']])
+    stockChart.importCandle('0700.hk',df=data[['time','Open','High','Low','Close']])
+    stockChart.importLine('0700.hk_close',df=data[['time','Close']],n=1)
+
+
+    stockChart.show()
+    sys.exit(app.exec_())
+
 if __name__ == '__main__':
-    showChart()
+    # showChart()
     #
     # showStockChart()
+    GUIStockChart()

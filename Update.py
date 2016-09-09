@@ -18,7 +18,6 @@ def updateInstrument():
 
 def updateHoldings():
 
-
     pool=threadpool.ThreadPool(5)
 
     for i in insts[0:5]:
