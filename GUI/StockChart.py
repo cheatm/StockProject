@@ -127,11 +127,11 @@ class StockChart(QtGui.QMainWindow):
                     self.shown[num][type][name].append(show)
                     self.shown[num][type][name].append(self.data[num][type][name][1])
                     if type=='candle':
-                        Max.append(show['high'].max())
-                        Min.append(show['low'].min())
+                        Max.append(show['high'].max()*1.03)
+                        Min.append(show['low'].min()*0.97)
                     elif type=='line':
-                        Max.append(show['value'].max())
-                        Min.append(show['value'].min())
+                        Max.append(show['value'].max()*1.03)
+                        Min.append(show['value'].min()*0.97)
 
             self.Range.append([max(Max),min(Min)])
 
@@ -251,6 +251,18 @@ class StockChart(QtGui.QMainWindow):
         qp.drawLine(self.areaWidth,0,self.areaWidth,self.areaHeight)
         for l in self.chartsGapLine:
             qp.drawLine(0,l,self.width(),l)
+
+    def importHist(self,name,df=None,time=None,hist=None,n=0,color=None):
+        if df is None:
+            df=pandas.DataFrame({'time':time,'value':hist})
+        else:
+            df.columns=['time','value']
+
+        while len(self.data)<=n:
+            self.data.append({})
+
+        if 'hist' not in self.data[n].keys():
+            self.data[n]['hist']={}
 
     def importLine(self,name,df=None,time=None,line=None,n=0,color=None):
         if df is None:

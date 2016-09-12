@@ -13,11 +13,6 @@ def showChart():
     HSI=DataTransform.pandas_to_listSeries(HSI,'tradeDate','openIndex','highestIndex','lowestIndex','closeIndex')
     HSI[0]=DataTransform.timeList_to_secondList(HSI[0],'%Y-%m-%d')
 
-
-    # date=[]
-    # for d in HSI.tradeDate:
-    #     date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
-
     stockChart.importCandle(name=HKStock.HKindex[0]+'candle',candle=HSI,color='white')
 
     for i in range(0,6):
@@ -53,9 +48,6 @@ def showChart():
         date,HmL
     ],figure=3)
     stockChart.setYlabel(0,figure=3)
-
-
-    # stockChart.importExtraLine([date[-5],0],[date[-1],2],3)
 
     stockChart.show()
     sys.exit(app.exec_())
@@ -95,8 +87,8 @@ def GUIStockChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=ST.StockChart()
     data=HKStock.readStockData('Day','0700.hk')
-    # print(data[['time','Open','High','Low','Close']])
-    stockChart.importCandle('0700.hk',df=data[['time','Open','High','Low','Close']])
+
+    stockChart.importCandle('0700.hk',df=data[['time','Open','High','Low','Close']],color='cyan')
     stockChart.importLine('0700.hk_close',df=data[['time','Close']],n=1)
 
 

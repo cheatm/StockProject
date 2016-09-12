@@ -1,6 +1,10 @@
 import  threading,time
 import threadpool
 
+
+
+
+
 def test():
     thread1=threading.Thread(target=t1)
     thread2=threading.Thread(target=t2)
@@ -17,19 +21,25 @@ def t1():
     return [1,2,3,4]
 
 def t2(*args,**kwargs):
-    print('t2')
-    return 2
+
+    return args
 
 def callBack(req,out):
     kwds=req.kwds
-    print(kwds)
-    print(out)
-
+    print(req.kwds['a'])
+    origin[req.requestID]=out
 
 if __name__ == '__main__':
     pool=threadpool.ThreadPool(5)
-
+    global origin
+    origin={}
     pool.putRequest(
         threadpool.WorkRequest(t2,[1,2,3],{'a':1},callback=callBack)
     )
+    pool.putRequest(
+        threadpool.WorkRequest(t2,[4,6,0],{'a':1},callback=callBack)
+    )
+
     pool.wait()
+    print(origin)
+
