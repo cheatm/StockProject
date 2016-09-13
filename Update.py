@@ -15,12 +15,7 @@ def updateInstrument():
     errorlog=open('error_instrument.txt','w')
     for i in insts:
         print(i)
-        # error=od.update(instrument=i)
-        # if len(error)>0:
-        #     errorlog.write('%s:' % i)
-        #     for e in error:
-        #         errorlog.write(' %s,' % e)
-        #     errorlog.write('\n')
+
         req=threadpool.WorkRequest(od.update,kwds={'instrument':i},callback=callBack)
         pool.putRequest(req)
 
@@ -29,7 +24,7 @@ def updateInstrument():
     for k in errors.keys():
         errorlog.write('%s:' % k)
         for e in errors[k]:
-            errorlog.write(' %s,' % e)
+            errorlog.write('%s,' % e)
         errorlog.write('\n')
     errorlog.close()
 

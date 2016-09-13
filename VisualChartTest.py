@@ -5,6 +5,7 @@ import HKStock,indicator,DataTransform
 from PyQt4 import QtGui,QtCore
 import GUI.StockChart as ST
 
+
 def showChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=StockChart()
@@ -86,11 +87,17 @@ def showStockChart():
 def GUIStockChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=ST.StockChart()
-    data=HKStock.readStockData('Day','0700.hk')
+    data=HKStock.readStockData('HSI','HKindex')
+    yh=SaveData.readYahooDataFromSql('HK')['HK']
+    rf=yh.Raise-yh.Fall
+    hl=yh.NewHigh-yh.NewLow
+    T=[]
+    for d in yh['index']:
+        T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
 
-    stockChart.importCandle('0700.hk',df=data[['time','Open','High','Low','Close']],color='cyan')
-    stockChart.importLine('0700.hk_close',df=data[['time','Close']],n=1)
-
+    stockChart.importCandle('0700.hk',df=data[['time','openIndex','highestIndex','lowestIndex','closeIndex']],color='cyan')
+    stockChart.importHist('NewHigh-NewLow',time=T,hist=hl.tolist(),n=1)
+    stockChart.importHist('Raise-Fall',time=T,hist=rf.tolist(),n=2)
 
     stockChart.show()
     sys.exit(app.exec_())
@@ -100,3 +107,11 @@ if __name__ == '__main__':
     #
     # showStockChart()
     GUIStockChart()
+    # data=SaveData.readYahooDataFromSql('HK')['HK']
+    # rf=data.Raise-data.Fall
+    #
+    # T=[]
+    # for d in data['index']:
+    #     T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
+    # frame=pandas.DataFrame({'value':rf,'time':T})
+    # print(data)

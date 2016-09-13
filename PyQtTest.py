@@ -71,7 +71,7 @@ class StockChart(QtGui.QMainWindow):
             QtCore.Qt.Key_Left:self.left,
             QtCore.Qt.Key_Right:self.right
             }
-        # print(self.Data['tradeDate'])
+
         self.BGcolor= QtGui.QColor(0,0,0)
         self.initWidget()
         # self.setToolTip('widget')
@@ -262,6 +262,7 @@ class StockChart(QtGui.QMainWindow):
             if abs(self.posx-self.shownX[t])<=gap:
                 date=self.toStrDate(t)
                 return(t)
+
 
     def drawGraph(self,event,qp,num,height):
 
