@@ -100,7 +100,7 @@ def getYahooData(proxy=None,html=None):
     ]
 
     # header=UAlist[random.randint(0,3)]
-    header=UAlist[2]
+    header=UAlist[0]
     print(header)
 
     # proxy={'http': 'http://182.38.24.70:8118'}
@@ -126,15 +126,9 @@ def getYahooData(proxy=None,html=None):
                 break
         return v
 
-
-
     for b in out.columns:
         for a in out.index:
-            # if out.get_value(a,b).isdigit():
-
             out.set_value(a,b,getNum((out.get_value(a,b))))
-
-    # print(out.T)
 
     return out.T
 

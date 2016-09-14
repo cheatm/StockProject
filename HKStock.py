@@ -2,7 +2,7 @@ import pandas
 import tushare as ts
 import time,os,requests,re
 import sqlite3,random
-import indicator
+import threadpool
 
 
 folder='Data'
@@ -30,7 +30,8 @@ def getIndexData(tick):
     for i in data['tradeDate']:
         t.append(time.mktime(time.strptime(i,'%Y-%m-%d')))
     data.insert(1,'time',t)
-    return(data)
+
+    return(data.set_index('time'))
 
 def readIndexData(tick,update=False,f=savePath):
     createFolder(f)
@@ -158,6 +159,30 @@ def readStockData(table,code=None,db=None,con=None):
 
     return (data)
 
+def read_sql(table,code=None,dbpath=None,con=None):
+    close=False
+
+    if dbpath is None:
+        dbpath='%s/%s.db' % (savePath,code)
+
+    if con is None:
+        con = sqlite3.connect(dbpath)
+        close=True
+
+    data=pandas.read_sql('''select * FROM %s''' % table,con)
+
+    if close:
+        con.close()
+
+    return data
+
+def updateIndex(name='HKindex.db',pathFolder=savePath,index=HKindex):
+    con=sqlite3.connect("%s/%s" % (pathFolder,name))
+    for i in index:
+        data=getIndexData(i)
+        data.to_sql(i,con,if_exists='replace')
+        print(i)
+    con.close()
 
 def changeDBdata(table,db=None,con=None):
     close=False
@@ -187,8 +212,6 @@ def updateAllStock(pathFolder=savePath):
         con=sqlite3.connect(path)
         updateStockData(code=name,con=con)
         con.close()
-
-
 
 def updateStockData(code,table='Day',db=None,con=None):
     '''
@@ -328,6 +351,8 @@ if __name__ == '__main__':
     # setToken('13a8a6f82ca1f297acfc32c92a6c761b9e00de7ca61a0551fb2d0e62676d76d1')
 
     # updateAllStock(savePath)
+
+    print(read_sql('HSI','HKindex'))
 
     pass
 

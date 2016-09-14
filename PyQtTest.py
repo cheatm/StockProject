@@ -386,8 +386,6 @@ class StockChart(QtGui.QMainWindow):
 
         pass
 
-
-
     def importExtraLine(self,point1,point2,num=0):
         while len(self.extraLines)<=num:
             self.extraLines.append([])
@@ -446,9 +444,6 @@ class StockChart(QtGui.QMainWindow):
 
                     qp.drawText(c,y+size+2,label)
                     c=c+size*len(label)*4/5
-
-
-
 
     def Yrange(self,num):
         maxY=[]
@@ -644,7 +639,6 @@ class StockChart(QtGui.QMainWindow):
 
             for i in range(0,len(v[0])):
                 x=self.shownX[v[0][i]]
-                # x=(v[0][i]-self.XR[1])/self.xmodify
                 y=(v[1][i]-self.YR[num][1])/self.ymodify[num]
 
                 points.append(QtCore.QPointF(x,y))

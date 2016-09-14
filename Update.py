@@ -1,6 +1,7 @@
 import oandaData as od
 import HKStock as hs
-import threading,threadpool
+import threadpool
+import json
 
 insts=od.readInsts()
 
@@ -21,12 +22,31 @@ def updateInstrument():
 
     pool.wait()
 
-    for k in errors.keys():
-        errorlog.write('%s:' % k)
-        for e in errors[k]:
-            errorlog.write('%s,' % e)
-        errorlog.write('\n')
+    errorlog.write(json.dumps(errors))
+    # for k in errors.keys():
+    #     errorlog.write('%s:' % k)
+    #     for e in errors[k]:
+    #         errorlog.write('%s,' % e)
+    #     errorlog.write('\n')
     errorlog.close()
+
+def errorReUpdate(path='error_instrument.txt'):
+    file=open(path)
+    error=json.loads(file.read())
+    file.close()
+
+    if len(error)==0:
+        print('No error occurs during last update')
+        return
+
+    errors={}
+    for k in error.keys():
+        out=od.update(*error[k],instrument=k)
+        if len(out)>0:
+            errors[k]=out
+    file=open(path,'w')
+    file.write(json.dumps(errors))
+    file.close()
 
 def updateHoldings():
 
@@ -52,7 +72,10 @@ def updateHKStock():
 
 
 if __name__ == '__main__':
-    updateInstrument()
-    updateHoldings()
-    updateHKStock()
+    # updateInstrument()
+    # updateHoldings()
+    # updateHKStock()
+
+    errorReUpdate()
+
     pass

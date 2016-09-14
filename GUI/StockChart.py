@@ -1,5 +1,5 @@
 from PyQt4 import QtCore,QtGui
-import pandas,sys
+import pandas,sys,time
 
 class StockChart(QtGui.QMainWindow):
 
@@ -23,7 +23,9 @@ class StockChart(QtGui.QMainWindow):
         QtGui.QColor('yellow')
     ]
 
-    def __init__(self,parent=None,Xaxis=25,Yaxis=80):
+    yLabel=[]
+
+    def __init__(self,parent=None,Xaxis=15,Yaxis=80):
         QtGui.QWidget.__init__(self,parent)
 
         self.initWidget()
@@ -47,6 +49,22 @@ class StockChart(QtGui.QMainWindow):
             QtCore.Qt.Key_Right:self.right
             }
 
+    def mousePressEvent(self, event):
+        self.setMouseTracking(self.hasMouseTracking()==False )
+        self.posx=event.x()
+        self.posy=event.y()
+        self.locate=self.locateX(event.x())
+        print(self.locate)
+        self.update()
+
+    def mouseMoveEvent(self,event):
+        self.posx=event.x()
+        self.posy=event.y()
+        self.locate=self.locateX(event.x())
+        print(self.locate)
+        self.update()
+
+
     def keyPressEvent(self, event):
 
         if event.key() in self.command.keys():
@@ -69,7 +87,6 @@ class StockChart(QtGui.QMainWindow):
         if self.xMove-1>=0:
             self.xMove=self.xMove-1
             self.repaint()
-            print('r')
 
     def down(self):
         self.Xalpha*=0.8
@@ -93,7 +110,6 @@ class StockChart(QtGui.QMainWindow):
 
     def yRange(self,data):
         col=data.columns
-        print(col)
 
     def defineRange(self):
         if self.xMove!=0:
@@ -163,8 +179,10 @@ class StockChart(QtGui.QMainWindow):
     def paintEvent(self, event):
         self.areaHeight=self.height()-self.Xaxis-self.highEdge-self.lowEdge
         self.areaWidth=self.width()-self.Yaxis-self.leftEdge-self.rightEdge
-
+        print()
         self.xCount=int(self.Xalpha*self.areaWidth)
+        if self.xCount>len(self.xRay)-1:
+            self.xCount=len(self.xRay)-1
 
         qp=QtGui.QPainter()
         qp.begin(self)
@@ -173,6 +191,16 @@ class StockChart(QtGui.QMainWindow):
         self.initCharts()
         self.drawBackGround(event,qp)
         self.drawCharts(event,qp)
+
+    def drawCrossLine(self,event,qp):
+        if self.hasMouseTracking():
+
+            qp.setPen(QtGui.QColor(255,255,255))
+
+            qp.drawLine(QtCore.QPoint(self.posx,0),QtCore.QPoint(self.posx,self.areaHeight))
+            qp.drawLine(QtCore.QPoint(0,self.posy),QtCore.QPoint(self.areaWidth,self.posy))
+
+
 
     def drawCharts(self,event,qp):
 
@@ -191,23 +219,92 @@ class StockChart(QtGui.QMainWindow):
             self.drawLines(event,qp,i,modify)
 
             qp.scale(1,-1)
-            if i>0:
-                self.drawYLabel(event,qp,i,modify,0)
+
+            self.drawYLabel(event,qp,i,modify,self.yLabel[i])
+            self.drawShortName(event,qp,i,height)
 
             qp.restore()
+        self.drawXLabel(event,qp,self.Xaxis*0.8)
+        self.drawCrossLine(event,qp)
 
-    def drawYLabel(self,event,qp,i,modify,*args,size=10):
+    def locateX(self,X):
+        Min=X
+        value=X
+        for i in self.xList.values():
+            if abs(X-i)<Min:
+                Min=abs(X-i)
+                value=i
+        return value
+
+
+
+    def drawShortName(self,event,qp,n,height,size=10):
+        qp.translate(0,-height)
+        qp.setFont(QtGui.QFont('ShortName',size))
+        pos=QtCore.QPointF(2,2+size)
+
+        for tp in sorted(self.shown[n].keys()):
+            t=self.shown[n][tp]
+            for name in t.keys():
+                c=t[name]
+                qp.setPen(c[1])
+                qp.setBrush(c[1])
+                col=c[0].columns.tolist()
+                col.pop(0)
+
+                pandas.DataFrame()
+                x=c[0].index[-1]
+                out=name
+
+                if self.hasMouseTracking():
+                    x=self.locate
+
+                try:
+                    if len(col)==1:
+                        out="%s:%s" % (out,c[0].get_value(x,col[0]))
+                    else:
+                        for s in col:
+                            out="%s %s:%s" % (out,s,c[0].get_value(x,s))
+                except :
+                    if len(col)==1:
+                        out="%s:%s" % (out,c[0].get_value(c[0].index[-1],col[0]))
+                    else:
+                        for s in col:
+                            out="%s %s:%s" % (out,s,c[0].get_value(c[0].index[-1],s))
+
+                qp.drawText(pos,out)
+
+                if tp=='candle':
+                    pos.setY(pos.y()+2+size)
+                else:
+                    pos.setX(pos.x()+2+len(out)*size/1.3)
+
+    def drawYLabel(self,event,qp,i,modify,args,size=10):
         qp.setPen(QtGui.QColor(255,255,255))
         qp.setFont(QtGui.QFont('Ylabel',size))
         for a in args:
-            y=(a-self.Range[i][1])*modify
-            print(y)
+            y=-(a-self.Range[i][1])*modify
             qp.drawLine(QtCore.QPointF( self.areaWidth+self.leftEdge,y),
                         QtCore.QPointF(self.areaWidth+self.leftEdge+5,y))
             qp.drawText(QtCore.QPointF(self.areaWidth+self.leftEdge+5,y+size/2),str(a))
 
+    def drawXLabel(self,event,qp,size):
+        qp.save()
+        qp.translate(0,self.areaHeight+self.highEdge)
+        qp.setPen(QtGui.QColor(255,255,255))
 
+        qp.setFont(QtGui.QFont('Xlabel',size))
+        l=len(self.xList)
 
+        last=0
+        for t in sorted(self.xList.keys()):
+            text=time.strftime('%Y/%m/%d',time.gmtime(t))
+            x=self.xList[t]
+            if x>last:
+                qp.drawLine(x,0,x,-2)
+                qp.drawText(x,2+size,text)
+                last=x+len(text)*size
+        qp.restore()
 
     def drawHist(self,event,qp,n,modify,height):
         if 'hist' not in self.shown[n].keys():
@@ -224,7 +321,7 @@ class StockChart(QtGui.QMainWindow):
 
                 qp.drawRect(QtCore.QRectF(QtCore.QPointF(i-w/2.7,0),QtCore.QPointF(i+w/2.7,y)))
 
-        qp.translate(0,height/2)
+        qp.translate(0,-height/2)
 
     def drawCandle(self,event,qp,n,modify):
         if 'candle' not in self.shown[n].keys():
@@ -252,10 +349,9 @@ class StockChart(QtGui.QMainWindow):
         else:
             qp.setBrush(color)
 
-        qp.drawLine(x,high,x,low)
+            qp.drawLine(x,high,x,low)
+
         qp.drawRect(rect)
-
-
 
     def drawLines(self,event,qp,n,modify):
         if 'line' not in self.shown[n].keys():
@@ -283,10 +379,11 @@ class StockChart(QtGui.QMainWindow):
         qp.drawRect(0,0,self.width(),self.height())
         qp.setPen(QtGui.QColor(255,255,255))
         qp.drawLine(self.leftEdge+self.areaWidth,self.highEdge,self.leftEdge+self.areaWidth,self.highEdge+self.areaHeight)
+        qp.drawLine(self.leftEdge,self.highEdge,self.leftEdge,self.highEdge+self.areaHeight)
         for l in self.chartsGapLine:
             qp.drawLine(self.leftEdge,l,self.width()-self.rightEdge,l)
 
-    def importHist(self,name,df=None,time=None,hist=None,n=0,color=None):
+    def importHist(self,name,df=None,time=None,hist=None,n=0,color=None,label=None):
         if df is None:
             df=pandas.DataFrame({'time':time,'value':hist})
         else:
@@ -294,6 +391,7 @@ class StockChart(QtGui.QMainWindow):
 
         while len(self.data)<=n:
             self.data.append({})
+            self.yLabel.append([])
 
         if 'hist' not in self.data[n].keys():
             self.data[n]['hist']={}
@@ -310,6 +408,8 @@ class StockChart(QtGui.QMainWindow):
                 color=self.colors[color]
             except:
                 color=self.colors[0]
+        elif isinstance(color,list):
+            color=QtGui.QColor(*color[0:3])
 
         def outXRay(x):
             return x not in self.xRay
@@ -320,8 +420,10 @@ class StockChart(QtGui.QMainWindow):
             self.xRay.sort()
 
         self.data[n]['hist'][name]=[df,color]
+        if label is not None:
+            self.yLabel[n].extend(label)
 
-    def importLine(self,name,df=None,time=None,line=None,n=0,color=None):
+    def importLine(self,name,df=None,time=None,line=None,n=0,color=None,label=None):
         if df is None:
             df=pandas.DataFrame({'time':time,'value':line})
         else:
@@ -329,6 +431,7 @@ class StockChart(QtGui.QMainWindow):
 
         while len(self.data)<=n:
             self.data.append({})
+            self.yLabel.append([])
 
         if 'line' not in self.data[n].keys():
             self.data[n]['line']={}
@@ -345,6 +448,8 @@ class StockChart(QtGui.QMainWindow):
                 color=self.colors[color]
             except:
                 color=self.colors[0]
+        elif isinstance(color,list):
+            color=QtGui.QColor(*color[0:3])
 
         def outXRay(x):
             return x not in self.xRay
@@ -355,8 +460,10 @@ class StockChart(QtGui.QMainWindow):
             self.xRay.sort()
 
         self.data[n]['line'][name]=[df,color]
+        if label is not None:
+            self.yLabel[n].extend(label)
 
-    def importCandle(self,name,df=None,time=None,open=None,high=None,low=None,close=None,n=0,color=None):
+    def importCandle(self,name,df=None,time=None,open=None,high=None,low=None,close=None,n=0,color=None,label=None):
         if df is None:
             df=pandas.DataFrame({
                 'time':time,'open':open,'high':high,'low':low,'close':close
@@ -366,6 +473,7 @@ class StockChart(QtGui.QMainWindow):
 
         while len(self.data)<=n:
             self.data.append({})
+            self.yLabel.append([])
 
         if 'candle' not in self.data[n].keys():
             self.data[n]['candle']={}
@@ -382,6 +490,8 @@ class StockChart(QtGui.QMainWindow):
                 color=self.colors[color]
             except:
                 color=self.colors[0]
+        elif isinstance(color,list):
+            color=QtGui.QColor(*color[0:3])
 
         def outXRay(x):
             return x not in self.xRay
@@ -392,6 +502,8 @@ class StockChart(QtGui.QMainWindow):
             self.xRay.sort()
 
         self.data[n]['candle'][name]=[df,color]
+        if label is not None:
+            self.yLabel[n].extend(label)
 
 
 

@@ -92,7 +92,8 @@ if __name__ == '__main__':
 
     # changeYahooData()
 
-    print(readYahooDataFromSql('HK','NASDAQ'))
+    history=readYahooDataFromSql('HK','NASDAQ')
+    print(history)
 
 
 

@@ -87,7 +87,10 @@ def showStockChart():
 def GUIStockChart():
     app=QtGui.QApplication(sys.argv)
     stockChart=ST.StockChart()
-    data=HKStock.readStockData('HSI','HKindex')
+
+    data=HKStock.readStockData('HSI','HKindex').dropna()
+    mal=indicator.MA(data['time'],data['closeIndex'])
+    mas=indicator.MA(data['time'],data['closeIndex'],period=20)
     yh=SaveData.readYahooDataFromSql('HK')['HK']
     rf=yh.Raise-yh.Fall
     hl=yh.NewHigh-yh.NewLow
@@ -96,8 +99,20 @@ def GUIStockChart():
         T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
 
     stockChart.importCandle('0700.hk',df=data[['time','openIndex','highestIndex','lowestIndex','closeIndex']],color='cyan')
-    stockChart.importHist('NewHigh-NewLow',time=T,hist=hl.tolist(),n=1)
-    stockChart.importHist('Raise-Fall',time=T,hist=rf.tolist(),n=2)
+    stockChart.importLine('MA60',df=mal,color='red')
+    stockChart.importLine('MA20',df=mas,color=[60,200,150])
+
+    c=0
+    for i in HKStock.HKindex:
+
+        data=HKStock.read_sql(i,'HKindex')
+        mom=indicator.momentum(data['time'],data['closeIndex'])
+        stockChart.importLine(i,mom,n=1,color=c)
+        c+=1
+    stockChart.yLabel[1]=[100]
+
+    stockChart.importHist('NewHigh-NewLow',time=T,hist=hl.tolist(),n=2,label=[0])
+    stockChart.importHist('Raise-Fall',time=T,hist=rf.tolist(),n=3,label=[0])
 
     stockChart.show()
     sys.exit(app.exec_())
@@ -107,11 +122,3 @@ if __name__ == '__main__':
     #
     # showStockChart()
     GUIStockChart()
-    # data=SaveData.readYahooDataFromSql('HK')['HK']
-    # rf=data.Raise-data.Fall
-    #
-    # T=[]
-    # for d in data['index']:
-    #     T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
-    # frame=pandas.DataFrame({'value':rf,'time':T})
-    # print(data)
