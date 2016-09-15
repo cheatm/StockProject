@@ -698,10 +698,10 @@ class StockChart(QtGui.QMainWindow):
 class RRG_M(QtGui.QMainWindow):
     from math import cos,sin,tan,atan2
 
-    highedge=10
-    lowedge=10
-    leftedge=50
-    rightedge=50
+    highedge=0
+    lowedge=0
+    leftedge=0
+    rightedge=0
 
     period=10
 
@@ -758,8 +758,6 @@ class RRG_M(QtGui.QMainWindow):
                 8   1471449600  100.920851  102.770772
                 9   1471536000  100.341464  101.229403
 
-
-
         :param color:
         :return:
         '''
@@ -801,7 +799,6 @@ class RRG_M(QtGui.QMainWindow):
         longmom=indicator.momentum(time,price,long)
         shortmom.columns=['time','x']
         longmom.columns=['time','y']
-
 
         self.data[name]=shortmom.merge(longmom,how='inner',on='time')
 
@@ -860,21 +857,24 @@ class RRG_M(QtGui.QMainWindow):
         rect=QtCore.QRectF(QtCore.QPointF(halfX,halfY),
                            QtCore.QPointF(-halfX,-halfY))
 
+        cdepth=100
+        calpha=35
         self.BackGround={
             'back':rect,
             'x':QtCore.QLineF(-halfX,0,halfX,0),
-            'y':QtCore.QLineF(0,-halfY,0,halfY)
+            'y':QtCore.QLineF(0,-halfY,0,halfY),
+            'leftup':[QtCore.QRectF(QtCore.QPointF(-halfX,halfY),QtCore.QPointF(0,0)),QtGui.QColor(0,cdepth,cdepth,calpha)],
+            'rightup':[QtCore.QRectF(QtCore.QPointF(halfX,halfY),QtCore.QPointF(0,0)),QtGui.QColor(cdepth,0,cdepth,calpha)],
+            'leftdown':[QtCore.QRectF(QtCore.QPointF(-halfX,-halfY),QtCore.QPointF(0,0)),QtGui.QColor(cdepth,cdepth,0,calpha)],
+            'rightdown':[QtCore.QRectF(QtCore.QPointF(halfX,-halfY),QtCore.QPointF(0,0)),QtGui.QColor(cdepth,cdepth,cdepth,calpha)]
 
         }
-
-
 
     def paintEvent(self,event):
         self.ArrangeData()
 
         qp=QtGui.QPainter()
         qp.begin(self)
-
 
         qp.translate(self.width()/2,self.height()/2)
         qp.scale(1,-1)
@@ -892,11 +892,6 @@ class RRG_M(QtGui.QMainWindow):
             self.drawLabel(event,qp,name,labelPoint,size=size)
             c=c+1.1
 
-
-
-
-        pass
-
     def drawLines(self,event,qp,name,points,color):
         qp.setPen(color)
         qp.setBrush(color)
@@ -910,8 +905,6 @@ class RRG_M(QtGui.QMainWindow):
 
         self.drawArrow(event,qp,points[index[-2]],points[index[-1]])
 
-
-
     def drawLabel(self,event,qp,name,point,size=10):
         font=QtGui.QFont('label',size)
         qp.setFont(font)
@@ -920,7 +913,6 @@ class RRG_M(QtGui.QMainWindow):
         qp.scale(1,-1)
         qp.drawText(actual,name)
         qp.scale(1,-1)
-
 
     def drawArrow(self,event,qp,last,end):
         print(last,end)
@@ -940,10 +932,6 @@ class RRG_M(QtGui.QMainWindow):
 
         qp.drawPath(path)
 
-
-
-        pass
-
     def drawBackGround(self,event,qp,backGround,backcolor=QtGui.QColor(0,0,0),linecolor=QtGui.QColor(255,255,255)):
 
         qp.setPen(backcolor)
@@ -952,7 +940,9 @@ class RRG_M(QtGui.QMainWindow):
         qp.setPen(linecolor)
         qp.drawLine(backGround['x'])
         qp.drawLine(backGround['y'])
-
+        for i in ['leftup','leftdown','rightup','rightdown']:
+            qp.setBrush(backGround[i][1])
+            qp.drawRect(backGround[i][0])
 
 def printData():
     print(EconomicData.getYahooData())
@@ -965,9 +955,7 @@ def showChart():
     date=[]
     for d in HSI.tradeDate:
         date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
-    # window.importLine(name=HKStock.HKindex[0],line=[
-    #     date,HSI.closeIndex.tolist()
-    # ])
+    
     window.importCandle(name=HKStock.HKindex[0],candle=[
         date,HSI.openIndex.tolist(),HSI.highestIndex.tolist(),HSI.lowestIndex.tolist(),HSI.closeIndex.tolist()
     ])
