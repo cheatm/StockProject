@@ -1,10 +1,12 @@
 from PyQt4 import QtCore,QtGui
 import pandas,sys,time
+# import threadpool
 
 class StockChart(QtGui.QMainWindow):
 
     Xalpha=0.2
     xMove=0
+    action=1
 
     # All data import into this class
     data=[]
@@ -49,24 +51,24 @@ class StockChart(QtGui.QMainWindow):
             QtCore.Qt.Key_Right:self.right
             }
 
+
     def mousePressEvent(self, event):
+        self.action=0
         self.setMouseTracking(self.hasMouseTracking()==False )
         self.posx=event.x()
         self.posy=event.y()
         self.locate=self.locateX(event.x())
-        print(self.locate)
-        self.update()
+        self.repaint()
 
     def mouseMoveEvent(self,event):
+        self.action=0
         self.posx=event.x()
         self.posy=event.y()
         self.locate=self.locateX(event.x())
-        print(self.locate)
-        self.update()
-
+        self.repaint()
 
     def keyPressEvent(self, event):
-
+        self.action=1
         if event.key() in self.command.keys():
 
             self.command[event.key()]()
@@ -108,22 +110,22 @@ class StockChart(QtGui.QMainWindow):
         size=self.geometry()
         self.move(screen.width()/2-size.width()/2,screen.height()/2-size.height()/2)
 
-    def yRange(self,data):
-        col=data.columns
-
     def defineRange(self):
+        if not self.action:
+            return
+
+        shownXray=[]
         if self.xMove!=0:
-            self.shownXray=self.xRay[-1-self.xMove-self.xCount:-self.xMove]
+            shownXray=self.xRay[-1-self.xMove-self.xCount:-self.xMove]
         else:
-            self.shownXray=self.xRay[-1-self.xMove-self.xCount:]
+            shownXray=self.xRay[-1-self.xMove-self.xCount:]
 
         self.xList={}
-        gap=self.areaWidth/len(list(self.shownXray))
+        gap=self.areaWidth/len(list(shownXray))
         start=gap/2
-        for i in self.shownXray:
+        for i in shownXray:
             self.xList[i]=start
             start=start+gap
-
 
         self.shown=[]
         right=self.xRay[-1-self.xMove]
@@ -188,55 +190,70 @@ class StockChart(QtGui.QMainWindow):
         qp.begin(self)
 
         self.defineRange()
-        self.initCharts()
-        self.drawBackGround(event,qp)
-        self.drawCharts(event,qp)
 
-    def drawCrossLine(self,event,qp):
+        self.initCharts()
+
+        self.drawBackGround(event,qp)
+
+        for i in range(0,len(self.shown)):
+            self.drawCharts(event,qp,i)
+
+        self.drawXLabel(event,qp,self.Xaxis*0.8)
+        self.drawCrossLine(event,qp,self.Xaxis*0.8)
+
+    def drawCrossLine(self,event,qp,size):
         if self.hasMouseTracking():
 
             qp.setPen(QtGui.QColor(255,255,255))
+            qp.setFont(QtGui.QFont('crossline',size))
 
             qp.drawLine(QtCore.QPoint(self.posx,0),QtCore.QPoint(self.posx,self.areaHeight))
             qp.drawLine(QtCore.QPoint(0,self.posy),QtCore.QPoint(self.areaWidth,self.posy))
 
+            xstr=time.strftime('%Y/%m/%d',time.gmtime(self.locate[1]))
 
+            qp.setBrush(QtGui.QColor(0,125,125,225))
 
-    def drawCharts(self,event,qp):
+            rect=QtCore.QRectF(
+                QtCore.QPointF(self.posx,self.areaHeight),
+                QtCore.QPointF(self.posx+len(xstr)*size/1.3,self.areaHeight+self.Xaxis)
+            )
+            qp.drawRect(rect)
+            qp.drawText(rect,xstr)
+            print(self.locate)
 
-        for i in range(0,len(self.shown)):
-            qp.save()
+    def drawCharts(self,event,qp,i):
+        qp.save()
+        qp.translate(0,self.chartsGapLine[i])
+        qp.scale(1,-1)
 
-            qp.translate(0,self.chartsGapLine[i])
-            qp.scale(1,-1)
+        height=self.chartsGapLine[i]
+        if i >0:
+            height=height-self.chartsGapLine[i-1]
+        modify=height/(self.Range[i][0]-self.Range[i][1])
 
-            height=self.chartsGapLine[i]
-            if i >0:
-                height=height-self.chartsGapLine[i-1]
-            modify=height/(self.Range[i][0]-self.Range[i][1])
-            self.drawHist(event,qp,i,modify,height)
-            self.drawCandle(event,qp,i,modify)
-            self.drawLines(event,qp,i,modify)
+        self.drawHist(event,qp,i,modify,height)
+        self.drawCandle(event,qp,i,modify)
+        self.drawLines(event,qp,i,modify)
 
-            qp.scale(1,-1)
+        qp.scale(1,-1)
 
-            self.drawYLabel(event,qp,i,modify,self.yLabel[i])
-            self.drawShortName(event,qp,i,height)
+        self.drawYLabel(event,qp,i,modify,self.yLabel[i])
+        self.drawShortName(event,qp,i,height)
 
-            qp.restore()
-        self.drawXLabel(event,qp,self.Xaxis*0.8)
-        self.drawCrossLine(event,qp)
+        qp.restore()
 
     def locateX(self,X):
         Min=X
         value=X
-        for i in self.xList.values():
+        index=0
+        for k in self.xList.keys():
+            i=self.xList[k]
             if abs(X-i)<Min:
                 Min=abs(X-i)
                 value=i
-        return value
-
-
+                index=k
+        return [value,index]
 
     def drawShortName(self,event,qp,n,height,size=10):
         qp.translate(0,-height)
@@ -257,7 +274,7 @@ class StockChart(QtGui.QMainWindow):
                 out=name
 
                 if self.hasMouseTracking():
-                    x=self.locate
+                    x=self.locate[0]
 
                 try:
                     if len(col)==1:
@@ -292,9 +309,7 @@ class StockChart(QtGui.QMainWindow):
         qp.save()
         qp.translate(0,self.areaHeight+self.highEdge)
         qp.setPen(QtGui.QColor(255,255,255))
-
         qp.setFont(QtGui.QFont('Xlabel',size))
-        l=len(self.xList)
 
         last=0
         for t in sorted(self.xList.keys()):
@@ -370,9 +385,6 @@ class StockChart(QtGui.QMainWindow):
                 qp.drawLine(prex,prey,x,y)
                 prex=x
                 prey=y
-
-
-        pass
 
     def drawBackGround(self,event,qp):
         qp.setBrush(QtGui.QColor(0,0,0))
@@ -504,8 +516,6 @@ class StockChart(QtGui.QMainWindow):
         self.data[n]['candle'][name]=[df,color]
         if label is not None:
             self.yLabel[n].extend(label)
-
-
 
 if  __name__ == '__main__':
     pass
