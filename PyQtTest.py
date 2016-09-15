@@ -955,7 +955,7 @@ def showChart():
     date=[]
     for d in HSI.tradeDate:
         date.append(time.mktime(time.strptime(d,'%Y-%m-%d')))
-    
+
     window.importCandle(name=HKStock.HKindex[0],candle=[
         date,HSI.openIndex.tolist(),HSI.highestIndex.tolist(),HSI.lowestIndex.tolist(),HSI.closeIndex.tolist()
     ])

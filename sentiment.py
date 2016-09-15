@@ -119,37 +119,6 @@ def DirectionDegree(cotPeriod=100,hprPeriod=350):
 
 
 if __name__ == '__main__':
-    # showHPR_spr()
-    # cotindex=COTindex()
-    #
-    # corr=numpy.corrcoef(cotindex['EUR_USD'],cotindex['GBP_USD'])
-    # print(corr)
-    # print(DirectionDegree())
-
-    # insts=od.readInsts()[0:5]
-    # v=[]
-    #
-    # for x in insts:
-    #     l=[]
-    #     for y in insts:
-    #
-    #         if x!=y:
-    #             X=od.read_sql('D',x)
-    #             Y=od.read_sql('D',y)
-    #             corr=numpy.corrcoef([X['closeBid'].tolist()[-100:],Y['closeBid'].tolist()[-100:]])
-    #             l.append(corr[0,1])
-    #
-    #         else:
-    #             l.append(1)
-    #     v.append(l)
-    #
-    # out=pandas.DataFrame(v,insts,insts)
-    # print(out)
-
-    # EUR=od.read_sql('D','EUR_USD')
-    # AUD=od.read_sql('D','AUD_USD')
-    # corr=numpy.corrcoef(AUD['closeBid'].tolist()[-100:],EUR['closeBid'].tolist()[-100:])
-    # print(corr[0,1])
-
+    
     pass
 

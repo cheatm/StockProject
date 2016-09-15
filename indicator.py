@@ -164,7 +164,14 @@ def MOMENTUM(candle,N,price='closePrice',dateIndex='tradeDate',timeFormat='%Y-%m
 
     return (pandas.DataFrame(data,columns=['time',dateIndex,'MOMENTUM']) )
 
-def RS_Ratio(time,data,basic,m=5):
+def RS_Ratio(time=None,data=None,basic=None,df=None,m=5):
+    if df is not None:
+
+        time=df[df.columns[0]].tolist()
+        data=df[df.columns[1]].tolist()
+        basic=df[df.columns[2]].tolist()
+        pass
+
     data=numpy.array(data)
     basic=numpy.array(basic)
     if len(time)!=len(data) or len(time)!=len(basic):
@@ -172,7 +179,9 @@ def RS_Ratio(time,data,basic,m=5):
         return 0
 
     X=[]
+    print(data)
     for i in range(0,len(time)):
+
         X.append(data[i]/basic[i])
 
     npx=numpy.array(X)

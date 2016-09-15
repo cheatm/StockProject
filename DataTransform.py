@@ -16,8 +16,3 @@ def timeList_to_secondList(timeList,format):
         timep=time.strptime(t,format)
         out.append(time.mktime(timep))
     return (out)
-
-
-
-if __name__ == '__main__':
-    pass
