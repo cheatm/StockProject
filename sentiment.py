@@ -119,6 +119,6 @@ def DirectionDegree(cotPeriod=100,hprPeriod=350):
 
 
 if __name__ == '__main__':
-    
+
     pass
 
