@@ -98,7 +98,7 @@ def GUIStockChart():
     for d in yh['index']:
         T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
 
-    stockChart.importCandle('0700.hk',df=data[['time','openIndex','highestIndex','lowestIndex','closeIndex']],color='cyan')
+    stockChart.importCandle('HSI',df=data[['time','openIndex','highestIndex','lowestIndex','closeIndex']],color='cyan')
     stockChart.importLine('MA60',df=mal,color='red')
     stockChart.importLine('MA20',df=mas,color=[60,200,150])
 
