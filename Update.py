@@ -23,11 +23,7 @@ def updateInstrument():
     pool.wait()
 
     errorlog.write(json.dumps(errors))
-    # for k in errors.keys():
-    #     errorlog.write('%s:' % k)
-    #     for e in errors[k]:
-    #         errorlog.write('%s,' % e)
-    #     errorlog.write('\n')
+
     errorlog.close()
 
 def errorReUpdate(path='error_instrument.txt'):
@@ -76,6 +72,6 @@ if __name__ == '__main__':
     updateHoldings()
     updateHKStock()
     hs.updateIndex()
-    # errorReUpdate()
+    errorReUpdate()
 
     pass

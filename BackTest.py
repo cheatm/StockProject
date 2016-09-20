@@ -43,7 +43,6 @@ class Account():
             self.close=price
             self.profit=profit
 
-
     orders=[]
     ordersHistory=[]
     Time=0
@@ -112,7 +111,6 @@ class Account():
         self.cash=self.cash-order.deposit
 
         self.nextTicket=ticket+1
-
 
     def getOrders(self):
         attrs=['ticket','code','openPrice','lots','stoplost','takeprofit','deposit']

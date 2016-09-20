@@ -74,7 +74,7 @@ class StockChart(QtGui.QMainWindow):
             self.command[event.key()]()
 
     def wheelEvent(self, event):
-
+        self.action=1
         if event.delta()>0:
             self.up()
         else:
@@ -91,11 +91,11 @@ class StockChart(QtGui.QMainWindow):
             self.repaint()
 
     def down(self):
-        self.Xalpha*=0.8
+        self.Xalpha/=0.8
         self.repaint()
 
     def up(self):
-        self.Xalpha/=0.8
+        self.Xalpha*=0.8
         self.repaint()
 
     def initWidget(self):
@@ -264,17 +264,14 @@ class StockChart(QtGui.QMainWindow):
             t=self.shown[n][tp]
             for name in t.keys():
                 c=t[name]
+                origin=self.data[n][tp][name][0]
                 qp.setPen(c[1])
                 qp.setBrush(c[1])
-                col=c[0].columns.tolist()
+                col=origin.columns.tolist()
                 col.pop(0)
 
-                pandas.DataFrame()
-                x=c[0].index[-1]
+                x=self.locate[0] if self.hasMouseTracking() else  origin.index[-1]
                 out=name
-
-                if self.hasMouseTracking():
-                    x=self.locate[0]
 
                 try:
                     if len(col)==1:
@@ -284,10 +281,10 @@ class StockChart(QtGui.QMainWindow):
                             out="%s %s:%s" % (out,s,c[0].get_value(x,s))
                 except :
                     if len(col)==1:
-                        out="%s:%s" % (out,c[0].get_value(c[0].index[-1],col[0]))
+                        out="%s:%s" % (out,origin.get_value(origin.index[-1],col[0]))
                     else:
                         for s in col:
-                            out="%s %s:%s" % (out,s,c[0].get_value(c[0].index[-1],s))
+                            out="%s %s:%s" % (out,s,origin.get_value(origin.index[-1],s))
 
                 qp.drawText(pos,out)
 
