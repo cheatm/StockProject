@@ -51,7 +51,6 @@ class StockChart(QtGui.QMainWindow):
             QtCore.Qt.Key_Right:self.right
             }
 
-
     def mousePressEvent(self, event):
         self.action=0
         self.setMouseTracking(self.hasMouseTracking()==False )
@@ -181,7 +180,6 @@ class StockChart(QtGui.QMainWindow):
     def paintEvent(self, event):
         self.areaHeight=self.height()-self.Xaxis-self.highEdge-self.lowEdge
         self.areaWidth=self.width()-self.Yaxis-self.leftEdge-self.rightEdge
-        print()
         self.xCount=int(self.Xalpha*self.areaWidth)
         if self.xCount>len(self.xRay)-1:
             self.xCount=len(self.xRay)-1
@@ -220,7 +218,6 @@ class StockChart(QtGui.QMainWindow):
             )
             qp.drawRect(rect)
             qp.drawText(rect,xstr)
-            print(self.locate)
 
     def drawCharts(self,event,qp,i):
         qp.save()
@@ -514,5 +511,3 @@ class StockChart(QtGui.QMainWindow):
         if label is not None:
             self.yLabel[n].extend(label)
 
-if  __name__ == '__main__':
-    pass

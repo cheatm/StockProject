@@ -1,7 +1,7 @@
 import oandaData as od
 import HKStock as hs
 import threadpool
-import json
+import json,time
 
 insts=od.readInsts()
 
@@ -34,6 +34,8 @@ def errorReUpdate(path='error_instrument.txt'):
     if len(error)==0:
         print('No error occurs during last update')
         return
+
+    time.sleep(2)
 
     errors={}
     for k in error.keys():

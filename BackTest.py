@@ -1,6 +1,7 @@
 import oandaData
 import pandas
 import indicator
+import time
 
 
 class Account():
@@ -141,23 +142,39 @@ class System():
     Entry={}
     Exit={}
 
+    param={}
+    params={}
+    funcparam={}
+
     def __init__(self,entry=None,exit=None,account=Account()):
 
         self.acc=account
         self.setEntry(entry)
         self.setExit(exit)
 
-    def setEntry(self,entry):
+    def setParams(self,**kwds):
+        for k in kwds.keys():
+            self.params[k]=kwds[k]
+
+        print(self.params)
+
+    def setEntry(self,entry,param=None):
         if entry is not None:
             for k in entry.keys():
                 self.Entry[k]=entry[k]
 
-    def entryOrder(self,code,lots,direction):
-        for k in self.Entry.keys():
-            func=self.Entry[k]
-            f=func(self)
-            if f != direction:
-                return 0
+        if param is not None:
+            for k in param.keys():
+                self.funcparam[k]=param[k]
+                for p in param[k]:
+                    if p not in self.params:
+                        self.params[p]=[]
+
+    def entryOrder(self,code,lots,direction,k):
+        func=self.Entry[k]
+        f=func(self)
+        if f != direction:
+            return 0
 
         if direction==1:
             price=self.data[self.code]['closeAsk']
@@ -167,10 +184,16 @@ class System():
             self.acc.openOrder(code,price,-lots)
 
 
-    def setExit(self,exit):
+    def setExit(self,exit,param=None):
         if exit is not None:
             for k in exit.keys():
                 self.Exit[k]=exit[k]
+        if param is not None:
+            for k in param.keys():
+                self.funcparam[k]=param[k]
+                for p in param[k]:
+                    if p not in self.params:
+                        self.params[p]=[]
 
     def exitOrder(self,order):
         for k in self.Exit.keys():
@@ -185,13 +208,12 @@ class System():
                 if order.lots>0:
                     self.acc.closeOrder(ticket=order.ticket,price=price)
 
-
     def importData(self,name,data,maincode=False):
         if maincode:
             self.code=name
         self.data[name]=data
 
-    def getind(self,name,code,shift=0,out=None,time=None,input=['time','closeBid'],**kwargs):
+    def getind(self,name,code,shift=None,time=None,input=['time','closeBid'],**kwargs):
         '''
         :param name: name of indicator which can be find in indicator.py
         :param code: code of data which has already been input into self.data
@@ -210,31 +232,38 @@ class System():
                     return indicator of specific column : Series
 
         '''
-
-        if time is None:
-            time=self.time
         In=[]
         symbol=self.data[code]
-        symbol=symbol[symbol['time']<=time]
+        shiftcopy=shift.copy() if isinstance(shift,list) else shift
+
+        if time is not None:
+            symbol=symbol[symbol['time']<=time]
+
         for i in input:
             In.append(symbol[i])
 
         ind=getattr(indicator,name)(*In,**kwargs)
 
+        if shift is None:
+            return ind
+
         if isinstance(shift,list):
+            if shift[-1]+1>len(ind.index):
+                return 0
+
             for s in range(0,len(shift)):
                 shift[s]=ind.index.tolist()[-shift[s]-1]
+
+            ind=ind.loc[shift]
+            ind.index=shiftcopy
         else:
+            if len(ind.index)<1:
+                return 0
             shift=ind.index.tolist()[-shift-1]
 
-        if out is not None:
-            if isinstance(out,int):
-                return ind.loc[shift][ind.columns[out]]
+            ind=ind.loc[shift]
 
-            if isinstance(out,str):
-                return ind.loc[shift][out]
-
-        return ind.loc[shift]
+        return ind
 
     def refreshAccount(self,time,price):
         self.acc.Time=time
@@ -245,28 +274,59 @@ class System():
 
 
     def run(self):
-        for i in self.data[self.code].index:
-            self.time=self.data[self.code].get_value(i,'time')
+
+        basicData=self.data[self.code]
+        for i in basicData.index:
+            self.time=basicData.get_value(i,'time')
+            self.refreshAccount(self.time,basicData.loc[i,basicData.columns[1:]])
 
 
-            self.entryOrder(self.code,lots=100,direction=1)
+            self.entryOrder(self.code,lots=100,direction=1,k='def3')
 
             for o in self.acc.orders:
 
                 self.exitOrder(o)
 
+    def optimalize(self):
+        param={'para':{},'func':{}}
+        paramList=[]
+        # for en in self.Entry.keys():
+        #     for ex in self.Exit.keys():
+        #         param['func'][ex]=self.Exit[ex]
+        #         param['func'][en]=self.Entry[en]
+        #         paramList.append(param)
+        #         param={'para':{},'func':{}}
+
+        print(paramList)
+
+
+        pass
 
 
 
 
 def def3(cls):
-    t=cls.data['EUR_USD'].get_value(90,'time')
-    ma=cls.getind('MACD','EUR_USD',shift=[0,1,2,3,4],time=t)
+    start=time.time()
+    t=cls.time
+    ma=cls.getind('MACD','EUR_USD',shift=list(range(0,5)),time=t)
+    print(time.time()-start)
+    if isinstance(ma,int):
 
+        return 0
 
-    print(ma)
+    # print(ma.get_value(0,'hist')>ma.get_value(1,'hist'))
+
+    def param():
+        return ['a','b','c']
+
+    return 0
+def3.__setattr__('param',['a','b','c'])
+
+def exit1(cls):
     return 0
 
+def entry2(cls):
+    return 0
 
 def accountTest():
     acc=Account()
@@ -279,12 +339,21 @@ def systemTest():
     data=oandaData.read_sql('D','EUR_USD')
 
     system=System()
-    system.importData('EUR_USD',data)
-    system.setEntry({'def3':def3})
-    system.run()
+    system.importData('EUR_USD',data,True)
+    system.setParams(a=[1,2,3,4],b=[3,4,5,6],f=[1,2,3,4,5,6],c=[5,6])
+    system.setEntry({'def3':def3,'entry2':entry2},
+                    {'def3':['a','b','c'],'entry2':['f','b']})
+    system.setExit({'exit1':exit1},{'exit1':['a','f']})
+    system.optimalize()
+    # system.run()
+    # print(system.getind('MACD','EUR_USD'))
+    print(system.params)
+    print(system.funcparam)
 
 
 if __name__ == '__main__':
     systemTest()
 
+    # def3.__setattr__('param',['a','b','c'])
+    # print(def3.param)
 
