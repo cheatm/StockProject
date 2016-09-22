@@ -132,11 +132,6 @@ def getYahooData(proxy=None,html=None):
 
     return out.T
 
-def nfpCatch():
-    url=[
-
-    ]
-
 def IPAddressSearcher():
     url="http://www.xicidaili.com/nn/1"
     User_Agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0'
@@ -176,34 +171,5 @@ def IpTest(addressList):
 
 
 if __name__ == '__main__':
-    # print(getNonFarmPayroll())
-    # print(getYieldCurve())
-    # print(getEconomicCalendar())
-    # print(getUSInitialJoblessClaims())
-    # print(test1())
-    # print(getYahooData())
-    # print(IPAddressSearcher())
 
-    # proxies=(IpTest(IPAddressSearcher()))
-    # for p in proxies:
-    #     print(p)
-    #     try:
-    #         print(getYahooData(proxy=p))
-    #     except Exception as e:
-    #         print(e)
-    #         print('---------------------------------------------------------')
-
-
-    lis=[
-    {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36 OPR/39.0.2256.48'},
-    {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586'},
-
-    {'user-agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.76 Mobile Safari/537.36'}
-    ]
-
-
-    for i in lis:
-        print(lis[random.randint(0,len(lis)-1)])
-
-
-    time.sleep(5)
+    pass

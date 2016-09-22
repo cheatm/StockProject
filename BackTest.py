@@ -273,7 +273,15 @@ class System():
                     pass
 
 
-    def run(self):
+    def run(self,**kwds):
+        '''
+
+        :param kwds:
+            filter='', entry='', exit='', stoplost='', takeprofit='',
+            param={'a':... ,'b':...}
+
+        :return:
+        '''
 
         basicData=self.data[self.code]
         for i in basicData.index:
@@ -350,10 +358,65 @@ def systemTest():
     print(system.params)
     print(system.funcparam)
 
+class STree():
+
+    leaves={}
+
+    def __init__(self,name,type,*strategies):
+        '''
+
+        :param name: name of the tree
+        :param strategies: list of strategies names:['entry1','entry2',...]
+        :return:
+        '''
+
+        self.name=name
+        self.type=type[0]
+        self.create(type,*strategies)
+
+    def create(self,type,*strategies):
+        leaves={}
+
+        if len(strategies)>1:
+            for s in strategies[0]:
+                leaves[s] = STree(s,type[1:],*strategies[1:])
+
+        elif len(strategies)==1:
+            for s in strategies[0]:
+                leaves[s]= STree(s,[None])
+
+        self.leaves=leaves.copy()
+        # print(self.name,self.leaves)
+
+    def showBranches(self,tree,*nameList):
+        thisList=[]
+        for name in tree.leaves.keys():
+            if isinstance(tree.leaves[name],STree):
+                leaveList=list(nameList).copy()
+                leaveList.append(name)
+
+                thisList.extend(tree.showBranches(tree.leaves[name],*leaveList))
+            else :
+                thisList.append(nameList)
+                print(thisList)
+        if len(tree.leaves)<1:
+            thisList.append(nameList)
+
+        return thisList
+
+    def showAllCombination(self,):
+        return pandas.DataFrame(self.showBranches(self))
+
+
 
 if __name__ == '__main__':
-    systemTest()
+    # systemTest()
 
     # def3.__setattr__('param',['a','b','c'])
     # print(def3.param)
+    param={'a':[1,2,3],'b':[2,3,4],'c':[6,7]}
 
+    sTree=STree('test',['Filter','Entry','Exit','StopLost','TakeProfit'],
+                ['filter1','filter2','filter3'],['entry1','entry2','entry3'],['exit1','exit2','exit3'],['sl1','sl2'],['tp1','tp2'])
+
+    print(sTree.showAllCombination())
