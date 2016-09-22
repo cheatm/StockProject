@@ -298,6 +298,7 @@ class System():
     def optimalize(self):
         param={'para':{},'func':{}}
         paramList=[]
+        sTree=STree('tree',['Entry','Exit'],list(self.Entry.keys()),list(self.Exit.keys()))
         # for en in self.Entry.keys():
         #     for ex in self.Exit.keys():
         #         param['func'][ex]=self.Exit[ex]
@@ -305,7 +306,7 @@ class System():
         #         paramList.append(param)
         #         param={'para':{},'func':{}}
 
-        print(paramList)
+        print(sTree.showAllCombination())
 
 
         pass
@@ -355,8 +356,8 @@ def systemTest():
     system.optimalize()
     # system.run()
     # print(system.getind('MACD','EUR_USD'))
-    print(system.params)
-    print(system.funcparam)
+    # print(system.params)
+    # print(system.funcparam)
 
 class STree():
 
@@ -407,16 +408,8 @@ class STree():
     def showAllCombination(self,):
         return pandas.DataFrame(self.showBranches(self))
 
-
-
 if __name__ == '__main__':
-    # systemTest()
+    systemTest()
 
     # def3.__setattr__('param',['a','b','c'])
     # print(def3.param)
-    param={'a':[1,2,3],'b':[2,3,4],'c':[6,7]}
-
-    sTree=STree('test',['Filter','Entry','Exit','StopLost','TakeProfit'],
-                ['filter1','filter2','filter3'],['entry1','entry2','entry3'],['exit1','exit2','exit3'],['sl1','sl2'],['tp1','tp2'])
-
-    print(sTree.showAllCombination())
