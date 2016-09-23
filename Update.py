@@ -28,7 +28,9 @@ def updateInstrument():
 
 def errorReUpdate(path='error_instrument.txt'):
     file=open(path)
-    error=json.loads(file.read())
+    text=file.read()
+
+    error= json.loads(text) if text is not '' else {}
     file.close()
 
     if len(error)==0:
