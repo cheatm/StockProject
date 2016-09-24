@@ -3,6 +3,111 @@ import pandas
 import indicator
 import time
 
+class STree():
+
+    leaves={}
+
+    def __init__(self,name,type='0',*strategies,**typeStrategies):
+        '''
+
+        :param name: name of the tree
+        :param strategies: list of strategies names:['entry1','entry2',...]
+        :return:
+        '''
+
+        self.name=name
+        self.type=type
+        self.create(type,*strategies,**typeStrategies)
+
+    def createParamBranch(self,params,funcParams,**need):
+        inneedParam=need.copy()
+        pa=params.copy()
+        if self.name in funcParams.keys():
+            for p in funcParams[self.name]:
+                if p in params:
+                    inneedParam[p]=params[p]
+                    pa.pop(p)
+
+        for name in self.leaves.keys():
+            tree=self.leaves[name]
+            if isinstance(tree,STree):
+                tree.createParamBranch(pa,funcParams,**inneedParam)
+
+        if len(self.leaves)==0:
+            self.__init__(self.name,self.type,**inneedParam)
+
+        pass
+
+    def create(self,type,*strategies,**ts):
+        leaves={}
+        nextType= str(int(type)+1) if type.isdigit() else type
+
+        if len(strategies)>1:
+            for s in strategies[0]:
+                leaves[s] = STree(s,nextType,*strategies[1:],**ts)
+
+        elif len(strategies)==1:
+            for s in strategies[0]:
+                leaves[s]= STree(s,nextType,**ts)
+
+        else:
+            if len(ts)>0:
+                t,leave=ts.popitem()
+                for s in leave:
+                    leaves[s]=STree(s,t,**ts)
+
+
+        self.leaves=leaves.copy()
+
+    def showBranchesDict(self,tree,**parentDict):
+        thisDict=parentDict.copy()
+        thisDict[tree.type]=tree.name
+        thisList=[]
+
+        for name in tree.leaves.keys():
+            if isinstance(tree.leaves[name],STree):
+
+                next=tree.showBranchesDict(tree.leaves[name],**thisDict)
+                thisList.extend(next)
+            else :
+                thisList.append(thisDict)
+
+        if len(tree.leaves)==0:
+            thisList.append(thisDict)
+
+        return thisList
+
+    def showBranches(self,tree,*nameList):
+        thisList=[]
+        for name in tree.leaves.keys():
+            if isinstance(tree.leaves[name],STree):
+                leaveList=list(nameList).copy()
+                leaveList.append(name)
+
+                thisList.extend(tree.showBranches(tree.leaves[name],*leaveList))
+            else :
+                thisList.append(nameList)
+        if len(tree.leaves)<1:
+            thisList.append(nameList)
+
+        return thisList
+
+    def showAllCombination(self):
+        combList=[]
+        for name in self.leaves.keys():
+            tree=self.leaves[name]
+            combList.extend(self.showBranchesDict(tree))
+        return combList
+
+class Strategy():
+
+    def __init__(self):
+        pass
+
+    def setParams(self,**kwds):
+        for k in kwds.keys():
+            if k in dir(self):
+                setattr(self,k,kwds[k])
 
 class Account():
 
@@ -135,7 +240,6 @@ class Account():
 
         return pandas.DataFrame(orders,columns=attrs)
 
-
 class System():
 
     data={}
@@ -152,11 +256,12 @@ class System():
         self.setEntry(entry)
         self.setExit(exit)
 
+    def importStrategy(self,Strategy):
+        self.Strategy=Strategy
+
     def setParams(self,**kwds):
         for k in kwds.keys():
             self.params[k]=kwds[k]
-
-        print(self.params)
 
     def setEntry(self,entry,param=None):
         if entry is not None:
@@ -170,8 +275,8 @@ class System():
                     if p not in self.params:
                         self.params[p]=[]
 
-    def entryOrder(self,code,lots,direction,k):
-        func=self.Entry[k]
+    def entryOrder(self,code,lots,direction,entry):
+        func=self.Entry[entry]
         f=func(self)
         if f != direction:
             return 0
@@ -182,7 +287,6 @@ class System():
         elif direction==-1:
             price=self.data[self.code]['closeBid']
             self.acc.openOrder(code,price,-lots)
-
 
     def setExit(self,exit,param=None):
         if exit is not None:
@@ -277,8 +381,8 @@ class System():
         '''
 
         :param kwds:
-            filter='', entry='', exit='', stoplost='', takeprofit='',
-            param={'a':... ,'b':...}
+            functions: filter='', entry='', exit='', stoplost='', takeprofit='', ...
+            params: fast=10, slow=20, ...
 
         :return:
         '''
@@ -289,29 +393,27 @@ class System():
             self.refreshAccount(self.time,basicData.loc[i,basicData.columns[1:]])
 
 
-            self.entryOrder(self.code,lots=100,direction=1,k='def3')
+            self.entryOrder(self.code,lots=100,direction=1,entry=kwds['Entry'])
 
             for o in self.acc.orders:
 
                 self.exitOrder(o)
 
-    def optimalize(self):
-        param={'para':{},'func':{}}
-        paramList=[]
-        sTree=STree('tree',['Entry','Exit'],list(self.Entry.keys()),list(self.Exit.keys()))
-        # for en in self.Entry.keys():
-        #     for ex in self.Exit.keys():
-        #         param['func'][ex]=self.Exit[ex]
-        #         param['func'][en]=self.Entry[en]
-        #         paramList.append(param)
-        #         param={'para':{},'func':{}}
+    def optimalize(self,params=None,funcparam=None):
+        params=self.params if params is None else params
+        funcparam=self.funcparam if funcparam is None else funcparam
 
-        print(sTree.showAllCombination())
+        sTree=STree('tree',Entry=list(self.Entry.keys()),Exit=list(self.Exit.keys()))
+        sTree.createParamBranch(params,funcparam)
 
+        sa=sTree.showAllCombination()
+        for comb in sa:
+            self.run(**comb)
 
-        pass
-
-
+        # columns=['Entry','Exit']
+        # columns.extend(list(params.keys()))
+        # sa=pandas.DataFrame(sTree.showAllCombination(),columns=columns)
+        # print(sa)
 
 
 def def3(cls):
@@ -320,10 +422,7 @@ def def3(cls):
     ma=cls.getind('MACD','EUR_USD',shift=list(range(0,5)),time=t)
     print(time.time()-start)
     if isinstance(ma,int):
-
         return 0
-
-    # print(ma.get_value(0,'hist')>ma.get_value(1,'hist'))
 
     def param():
         return ['a','b','c']
@@ -352,64 +451,34 @@ def systemTest():
     system.setParams(a=[1,2,3,4],b=[3,4,5,6],f=[1,2,3,4,5,6],c=[5,6])
     system.setEntry({'def3':def3,'entry2':entry2},
                     {'def3':['a','b','c'],'entry2':['f','b']})
-    system.setExit({'exit1':exit1},{'exit1':['a','f']})
-    system.optimalize()
-    # system.run()
-    # print(system.getind('MACD','EUR_USD'))
-    # print(system.params)
-    # print(system.funcparam)
+    system.setExit({'exit1':exit1,'exit2':exit1},{'exit1':['a','f']})
+    # system.optimalize()
 
-class STree():
+def analysisStragety(Stragety):
+    out={}
 
-    leaves={}
+    attrs=dir(Strategy)
 
-    def __init__(self,name,type,*strategies):
-        '''
+    for a in attrs.copy():
+        if '__' in a :
+            attrs.remove(a)
 
-        :param name: name of the tree
-        :param strategies: list of strategies names:['entry1','entry2',...]
-        :return:
-        '''
+    for a in attrs:
+        attr=getattr(Strategy,a)
+        if isinstance(attr,dict):
+            out[a]=(attr)
 
-        self.name=name
-        self.type=type[0]
-        self.create(type,*strategies)
+    return out
 
-    def create(self,type,*strategies):
-        leaves={}
-
-        if len(strategies)>1:
-            for s in strategies[0]:
-                leaves[s] = STree(s,type[1:],*strategies[1:])
-
-        elif len(strategies)==1:
-            for s in strategies[0]:
-                leaves[s]= STree(s,[None])
-
-        self.leaves=leaves.copy()
-        # print(self.name,self.leaves)
-
-    def showBranches(self,tree,*nameList):
-        thisList=[]
-        for name in tree.leaves.keys():
-            if isinstance(tree.leaves[name],STree):
-                leaveList=list(nameList).copy()
-                leaveList.append(name)
-
-                thisList.extend(tree.showBranches(tree.leaves[name],*leaveList))
-            else :
-                thisList.append(nameList)
-                print(thisList)
-        if len(tree.leaves)<1:
-            thisList.append(nameList)
-
-        return thisList
-
-    def showAllCombination(self,):
-        return pandas.DataFrame(self.showBranches(self))
 
 if __name__ == '__main__':
-    systemTest()
 
-    # def3.__setattr__('param',['a','b','c'])
-    # print(def3.param)
+    # systemTest()
+
+    # out=analysisStragety(Strategy)
+    # print(out)
+    pass
+
+
+
+
