@@ -99,16 +99,6 @@ class STree():
             combList.extend(self.showBranchesDict(tree))
         return combList
 
-class Strategy():
-
-    def __init__(self):
-        pass
-
-    def setParams(self,**kwds):
-        for k in kwds.keys():
-            if k in dir(self):
-                setattr(self,k,kwds[k])
-
 class Account():
 
     class order():
@@ -243,74 +233,57 @@ class Account():
 class System():
 
     data={}
-    Entry={}
-    Exit={}
 
-    param={}
     params={}
     funcparam={}
+    selectorlist=[]
 
     def __init__(self,entry=None,exit=None,account=Account()):
 
         self.acc=account
-        self.setEntry(entry)
-        self.setExit(exit)
+        self._set_custom_selector()
+        self._set_selector()
+        self._set_funcparam()
 
-    def importStrategy(self,Strategy):
-        self.Strategy=Strategy
+    def pop__(self,x):
+        return '__' not in x
+
+    def _set_selector(self):
+        if self.selectorlist.__len__()==0:
+            self.selectorlist=['Filter','Entry','Exit']
+
+        selfAttrs=list(filter(self.pop__,self.__dir__()))
+
+        for s in self.selectorlist:
+            if not hasattr(self,s):
+                setattr(self,s,{})
+            sdict=getattr(self,s)
+
+            for a in selfAttrs:
+                if s in a and s != a :
+                    attr=getattr(self,a)
+                    if isinstance(getattr(self,a),type(self.__init__)):
+                        sdict[a]=attr
+
+    def _set_custom_selector(self):
+        pass
+
+    def _set_funcparam(self):
+        selfAttrs=list(filter(self.pop__,self.__dir__()))
+
+        for s in self.selectorlist:
+            selector=getattr(self,s)
+            for name in selector.keys():
+                if '%s_param' % name in selfAttrs:
+                    self.funcparam[name]=getattr(self,'%s_param' % name)
+
+    def getPrice(self,column='close',shift=0):
+
+        pass
 
     def setParams(self,**kwds):
         for k in kwds.keys():
             self.params[k]=kwds[k]
-
-    def setEntry(self,entry,param=None):
-        if entry is not None:
-            for k in entry.keys():
-                self.Entry[k]=entry[k]
-
-        if param is not None:
-            for k in param.keys():
-                self.funcparam[k]=param[k]
-                for p in param[k]:
-                    if p not in self.params:
-                        self.params[p]=[]
-
-    def entryOrder(self,code,lots,direction,entry):
-        func=self.Entry[entry]
-        f=func(self)
-        if f != direction:
-            return 0
-
-        if direction==1:
-            price=self.data[self.code]['closeAsk']
-            self.acc.openOrder(code,price,lots)
-        elif direction==-1:
-            price=self.data[self.code]['closeBid']
-            self.acc.openOrder(code,price,-lots)
-
-    def setExit(self,exit,param=None):
-        if exit is not None:
-            for k in exit.keys():
-                self.Exit[k]=exit[k]
-        if param is not None:
-            for k in param.keys():
-                self.funcparam[k]=param[k]
-                for p in param[k]:
-                    if p not in self.params:
-                        self.params[p]=[]
-
-    def exitOrder(self,order):
-        for k in self.Exit.keys():
-            func=self.Exit[k]
-            f=func(self)
-            if f==-1:
-                price=self.data[self.code]['closeAsk']
-                if order.lots<0:
-                    self.acc.closeOrder(ticket=order.ticket,price=price)
-            elif f==1:
-                price=self.data[self.code]['closeBid']
-                if order.lots>0:
-                    self.acc.closeOrder(ticket=order.ticket,price=price)
 
     def importData(self,name,data,maincode=False):
         if maincode:
@@ -376,8 +349,7 @@ class System():
                 if self.acc.orders[i].code==k:
                     pass
 
-
-    def run(self,**kwds):
+    def runSelector(self,**kwds):
         '''
 
         :param kwds:
@@ -387,34 +359,101 @@ class System():
         :return:
         '''
 
+        for k in kwds.keys():
+            if k not in self.selectorlist:
+                setattr(self,k,kwds[k])
+
+        Filter=getattr(self,kwds['Filter'])
+        Entry=getattr(self,kwds['Entry'])
+        Exit=getattr(self,kwds['Exit'])
+
         basicData=self.data[self.code]
-        for i in basicData.index:
+        for i in basicData.index[0:20]:
             self.time=basicData.get_value(i,'time')
+            self._set_Time_Data()
+
+            print(self.timeData[self.code].tail())
             self.refreshAccount(self.time,basicData.loc[i,basicData.columns[1:]])
 
-
-            self.entryOrder(self.code,lots=100,direction=1,entry=kwds['Entry'])
-
             for o in self.acc.orders:
+                pass
 
-                self.exitOrder(o)
+            direct=Filter()
+            if direct==0:
+                continue
 
-    def optimalize(self,params=None,funcparam=None):
+            if Entry()==direct:
+                self.entryOrder(direct)
+
+    def entryOrder(self,direct):
+
+        pass
+
+    def exitOrder(self,direct,ticket):
+        pass
+
+    def _set_Time_Data(self):
+        self.timeData={}
+        for name in self.data.keys():
+            data=self.data[name]
+            if isinstance(data,pandas.DataFrame):
+                self.timeData[name]=data[data['time']<=self.time]
+
+
+    def optimalize(self,params=None,funcparam=None,selector=None):
         params=self.params if params is None else params
         funcparam=self.funcparam if funcparam is None else funcparam
 
-        sTree=STree('tree',Entry=list(self.Entry.keys()),Exit=list(self.Exit.keys()))
+        if selector is None:
+            selector={}
+            for select in self.selectorlist:
+                selector[select]=list(getattr(self,select).keys())
+
+        sTree=STree('tree',**selector)
         sTree.createParamBranch(params,funcparam)
 
         sa=sTree.showAllCombination()
-        for comb in sa:
-            self.run(**comb)
+        print(pandas.DataFrame(sa))
 
-        # columns=['Entry','Exit']
-        # columns.extend(list(params.keys()))
-        # sa=pandas.DataFrame(sTree.showAllCombination(),columns=columns)
-        # print(sa)
 
+class MySys(System):
+
+    fast=6
+    slow=12
+    signal=9
+    selector = ['Filter','Entry','Exit']
+    funcparam = {}
+
+    def _set_custom_selector(self):
+        self.Entry={'macdin':self.macdin}
+        self.Exit={'macdout':self.macdout}
+
+    def Entry_1(self):
+        print('fast',self.fast)
+        return 0
+
+    def Entry_2(self):
+        print('2_slow:',self.slow)
+        return  0
+
+    def Exit_1(self):
+        print('exit')
+        return 0
+
+    def Filter1(self):
+        print('filter_signal')
+        return 0
+
+    macdin_param=['fast','slow','signal']
+    def macdin(self):
+        print('macd_in')
+        return 0
+
+    macdout_param=['fast','slow','signal']
+    def macdout(self):
+        print('macd_out')
+
+        return 0
 
 def def3(cls):
     start=time.time()
@@ -430,12 +469,6 @@ def def3(cls):
     return 0
 def3.__setattr__('param',['a','b','c'])
 
-def exit1(cls):
-    return 0
-
-def entry2(cls):
-    return 0
-
 def accountTest():
     acc=Account()
     acc.openOrder('EUR_USD',10000,1,9990,10300)
@@ -446,36 +479,18 @@ def accountTest():
 def systemTest():
     data=oandaData.read_sql('D','EUR_USD')
 
-    system=System()
+    system=MySys()
     system.importData('EUR_USD',data,True)
-    system.setParams(a=[1,2,3,4],b=[3,4,5,6],f=[1,2,3,4,5,6],c=[5,6])
-    system.setEntry({'def3':def3,'entry2':entry2},
-                    {'def3':['a','b','c'],'entry2':['f','b']})
-    system.setExit({'exit1':exit1,'exit2':exit1},{'exit1':['a','f']})
-    # system.optimalize()
+    system.setParams(fast=[6,7,8,9,10],
+                     slow=[12,14,16],
+                     signal=[9,10,11])
 
-def analysisStragety(Stragety):
-    out={}
-
-    attrs=dir(Strategy)
-
-    for a in attrs.copy():
-        if '__' in a :
-            attrs.remove(a)
-
-    for a in attrs:
-        attr=getattr(Strategy,a)
-        if isinstance(attr,dict):
-            out[a]=(attr)
-
-    return out
+    system.runSelector(Entry='Entry_1',Filter='Filter1',Exit='macdin')
 
 
 if __name__ == '__main__':
 
-    # systemTest()
-
-    # out=analysisStragety(Strategy)
+    systemTest()
     # print(out)
     pass
 
