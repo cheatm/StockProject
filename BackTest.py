@@ -2,6 +2,7 @@ import oandaData
 import pandas
 import indicator
 import time
+import numpy as np
 
 class STree():
 
@@ -277,9 +278,13 @@ class System():
                 if '%s_param' % name in selfAttrs:
                     self.funcparam[name]=getattr(self,'%s_param' % name)
 
-    def getPrice(self,column='close',shift=0):
+    def getPrice(self,name,column,shift=0):
+        data=self.timeData[name]
+        return data.get_value(shift,column) if len(data.index)>shift else 0
 
-        pass
+    def getPrices(self,name,array,*columns):
+        data=self.timeData[name]
+        return data.loc[array,columns] if len(data.index)>max(array) else 0
 
     def setParams(self,**kwds):
         for k in kwds.keys():
@@ -368,11 +373,11 @@ class System():
         Exit=getattr(self,kwds['Exit'])
 
         basicData=self.data[self.code]
-        for i in basicData.index[0:20]:
+        for i in basicData.index[10:20]:
             self.time=basicData.get_value(i,'time')
             self._set_Time_Data()
 
-            print(self.timeData[self.code].tail())
+            print(self.getPrices(self.code,np.arange(0,10),'time','closeBid','closeAsk'))
             self.refreshAccount(self.time,basicData.loc[i,basicData.columns[1:]])
 
             for o in self.acc.orders:
@@ -397,7 +402,10 @@ class System():
         for name in self.data.keys():
             data=self.data[name]
             if isinstance(data,pandas.DataFrame):
-                self.timeData[name]=data[data['time']<=self.time]
+                data=data[data['time']<=self.time]
+                data.index=reversed(data.index)
+                self.timeData[name]=data
+
 
 
     def optimalize(self,params=None,funcparam=None,selector=None):
@@ -422,7 +430,6 @@ class MySys(System):
     slow=12
     signal=9
     selector = ['Filter','Entry','Exit']
-    funcparam = {}
 
     def _set_custom_selector(self):
         self.Entry={'macdin':self.macdin}
@@ -441,7 +448,6 @@ class MySys(System):
         return 0
 
     def Filter1(self):
-        print('filter_signal')
         return 0
 
     macdin_param=['fast','slow','signal']
@@ -478,9 +484,11 @@ def accountTest():
 
 def systemTest():
     data=oandaData.read_sql('D','EUR_USD')
+    COT=oandaData.read_sql('COT','EUR_USD')
 
     system=MySys()
     system.importData('EUR_USD',data,True)
+    system.importData('COT',COT)
     system.setParams(fast=[6,7,8,9,10],
                      slow=[12,14,16],
                      signal=[9,10,11])
@@ -491,7 +499,6 @@ def systemTest():
 if __name__ == '__main__':
 
     systemTest()
-    # print(out)
     pass
 
 
