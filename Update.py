@@ -75,7 +75,7 @@ if __name__ == '__main__':
     updateInstrument()
     updateHoldings()
     updateHKStock()
-    hs.updateIndex()
+    # hs.updateIndex()
     errorReUpdate()
 
     pass

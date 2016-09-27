@@ -153,19 +153,21 @@ class StockChart(QtGui.QMainWindow):
                     self.shown[num][type][name].append(show)
                     self.shown[num][type][name].append(self.data[num][type][name][1])
                     if type=='candle':
-                        Max.append(show['high'].max()*1.03)
-                        Min.append(show['low'].min()*0.97)
+                        Max.append(show['high'].max())
+                        Min.append(show['low'].min())
                     elif type=='line':
-                        Max.append(show['value'].max()*1.03)
-                        Min.append(show['value'].min()*0.97)
+                        Max.append(show['value'].max())
+                        Min.append(show['value'].min())
                     elif type=='hist':
                         h=abs(show['value'].max())
                         l=abs(show['value'].min())
-                        Max.append(max(h,l)*1.03)
-                        Min.append(-max(h,l)*1.03)
+                        Max.append(max(h,l))
+                        Min.append(-max(h,l))
 
 
-            self.Range.append([max(Max),min(Min)])
+            maxValue=max(Max)
+            minValue=min(Min)
+            self.Range.append([maxValue+(maxValue-minValue)*0.03,minValue-(maxValue-minValue)*0.03])
 
             num=num+1
 

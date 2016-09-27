@@ -1,8 +1,8 @@
 import oandaData
 import pandas
-import indicator
 import time
 import numpy as np
+import talib
 
 class STree():
 
@@ -120,7 +120,6 @@ class Account():
             self.closePrice=price
             self.profit=(self.closePrice-self.openPrice)*self.lots
 
-
         def refresh(self,price,cls):
 
             profit=(price-self.openPrice)*self.lots
@@ -137,12 +136,13 @@ class Account():
 
                     return
 
-            self.close=price
+            self.closePrice=price
             self.profit=profit
 
     orders=[]
     ordersHistory=[]
     Time=0
+    capital=[]
 
     def __init__(self,initCash=1000000,lever=1):
         '''
@@ -161,6 +161,7 @@ class Account():
 
         self.lever=lever
         self.cash=initCash
+        self.initCash=initCash
         self.nextTicket=0
         pass
 
@@ -185,7 +186,7 @@ class Account():
                     self.orders.pop(i)
                     return
 
-        self.orders[pos].close(price)
+        self.orders[pos].close(price,self.Time)
         self.cash=self.cash+self.orders[pos].profit+self.orders[pos].deposit
         self.ordersHistory.append(self.orders[pos])
         self.orders.pop(pos)
@@ -204,8 +205,8 @@ class Account():
             ticket=self.nextTicket
 
         order=self.order(ticket,code,price,lots,self.lever,self.Time,stoplost,takeprofit)
-        self.orders.append(order)
         self.cash=self.cash-order.deposit
+        self.orders.append(order)
 
         self.nextTicket=ticket+1
 
@@ -221,15 +222,36 @@ class Account():
         return pandas.DataFrame(orders,columns=attrs)
 
     def getHistoryOrders(self):
-        attrs=['ticket','code','openPrice','closePrice','lots','stoplost','takeprofit','deposit']
+        attrs=['ticket','code','openTime','closeTime','openPrice','closePrice','lots','stoplost','takeprofit','deposit','profit']
         orders=[]
-        for  o in self.ordersHistory:
+        for o in self.ordersHistory:
             order=[]
             for a in attrs:
                 order.append(getattr(o,a))
             orders.append(order)
 
         return pandas.DataFrame(orders,columns=attrs)
+
+    def marginLog(self):
+        log=[self.initCash]
+        for o in self.ordersHistory:
+            log.append(log[-1]+o.profit)
+
+        return(log)
+
+    def refresh(self,time,price):
+        self.Time=time
+
+        for o in self.orders:
+            o.refresh(price,self)
+
+        capital=self.cash
+        for o in self.orders:
+            capital=capital+o.profit+o.deposit
+
+        self.capital.append([time,capital])
+
+
 
 class System():
 
@@ -242,9 +264,14 @@ class System():
     def __init__(self,entry=None,exit=None,account=Account()):
 
         self.acc=account
-        self._set_custom_selector()
+        self.setCustomSelector()
         self._set_selector()
         self._set_funcparam()
+
+        self.init()
+
+    def init(self):
+        pass
 
     def pop__(self,x):
         return '__' not in x
@@ -266,7 +293,7 @@ class System():
                     if isinstance(getattr(self,a),type(self.__init__)):
                         sdict[a]=attr
 
-    def _set_custom_selector(self):
+    def setCustomSelector(self):
         pass
 
     def _set_funcparam(self):
@@ -295,55 +322,27 @@ class System():
             self.code=name
         self.data[name]=data
 
-    def getind(self,name,code,shift=None,time=None,input=['time','closeBid'],**kwargs):
-        '''
-        :param name: name of indicator which can be find in indicator.py
-        :param code: code of data which has already been input into self.data
-        :param shift: int or list[int]
-        :param out: int or str
-        :param input: list[str]
-        :param kwargs: params for the indicator to be used
+    def makeIndicators(self):
+        pass
 
-        :return:
-            if out is None:
-                return indicator with all columns : DataFrame
+    def makeIndicator(self,indicator,time,*values,**params):
+        value=[]
+        for v in values:
+            if isinstance(v,np.ndarray):
+                value.append(v)
             else:
-                if shift is int:
-                    return single value with specific shift and column : float
-                elif shift is list[int]:
-                    return indicator of specific column : Series
+                value.append(np.array(v))
 
-        '''
-        In=[]
-        symbol=self.data[code]
-        shiftcopy=shift.copy() if isinstance(shift,list) else shift
-
-        if time is not None:
-            symbol=symbol[symbol['time']<=time]
-
-        for i in input:
-            In.append(symbol[i])
-
-        ind=getattr(indicator,name)(*In,**kwargs)
-
-        if shift is None:
-            return ind
-
-        if isinstance(shift,list):
-            if shift[-1]+1>len(ind.index):
-                return 0
-
-            for s in range(0,len(shift)):
-                shift[s]=ind.index.tolist()[-shift[s]-1]
-
-            ind=ind.loc[shift]
-            ind.index=shiftcopy
+        ind=getattr(talib,indicator)(*value,**params)
+        data={'time':time}
+        if isinstance(ind,tuple):
+            count=0
+            for i in ind:
+                data[count]=i
+                count+=1
         else:
-            if len(ind.index)<1:
-                return 0
-            shift=ind.index.tolist()[-shift-1]
-
-            ind=ind.loc[shift]
+            data[0]=ind
+        ind=pandas.DataFrame(data).dropna()
 
         return ind
 
@@ -368,6 +367,8 @@ class System():
             if k not in self.selectorlist:
                 setattr(self,k,kwds[k])
 
+        self.makeIndicators()
+
         Filter=getattr(self,kwds['Filter'])
         Entry=getattr(self,kwds['Entry'])
         Exit=getattr(self,kwds['Exit'])
@@ -391,7 +392,6 @@ class System():
                 self.entryOrder(direct)
 
     def entryOrder(self,direct):
-
         pass
 
     def exitOrder(self,direct,ticket):
@@ -403,8 +403,26 @@ class System():
             data=self.data[name]
             if isinstance(data,pandas.DataFrame):
                 data=data[data['time']<=self.time]
-                data.index=reversed(data.index)
+                data.index=reversed(np.arange(0,data.index.size))
                 self.timeData[name]=data
+
+    def simpleStrategy(self):
+        pass
+
+    def runSimple(self,start=None,end=None,**kwds):
+        for k in kwds.keys():
+            if k not in self.selectorlist:
+                setattr(self,k,kwds[k])
+
+        self.makeIndicators()
+
+        basicData=self.data[self.code]
+
+        for i in basicData.index[start:end]:
+            self.time=basicData.get_value(i,'time')
+            self._set_Time_Data()
+            self.acc.refresh(self.time,self.getPrice(self.code,'closeBid')*10000)
+            self.simpleStrategy()
 
 
 
@@ -421,7 +439,9 @@ class System():
         sTree.createParamBranch(params,funcparam)
 
         sa=sTree.showAllCombination()
-        print(pandas.DataFrame(sa))
+
+        for comb in sa:
+            self.runSelector(**comb)
 
 
 class MySys(System):
@@ -431,7 +451,11 @@ class MySys(System):
     signal=9
     selector = ['Filter','Entry','Exit']
 
-    def _set_custom_selector(self):
+    def makeIndicators(self):
+        basic=self.data[self.code]
+        self.data['macd']=self.makeIndicator('MACD',basic['time'],basic['closeBid'],fastperiod=self.fast)
+
+    def setCustomSelector(self):
         self.Entry={'macdin':self.macdin}
         self.Exit={'macdout':self.macdout}
 
@@ -493,7 +517,10 @@ def systemTest():
                      slow=[12,14,16],
                      signal=[9,10,11])
 
-    system.runSelector(Entry='Entry_1',Filter='Filter1',Exit='macdin')
+    system.makeIndicators()
+    print(system.data['macd'])
+
+    # system.runSelector(Entry='Entry_1',Filter='Filter1',Exit='macdin')
 
 
 if __name__ == '__main__':
