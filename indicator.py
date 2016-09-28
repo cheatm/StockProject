@@ -219,7 +219,7 @@ def sentiment(time,price,n=14):
 
     return out
 
-def getIndicator(indicator,time,names=None,*inputs,**params):
+def getIndicator(indicator,time,*inputs,names=None,**params):
 
     '''
 
@@ -250,8 +250,8 @@ def getIndicator(indicator,time,names=None,*inputs,**params):
                 real
             ------------------------------------------------------------------------------------
 
-                                                (Inputs)    (Parameters)
-        rsi=getIndicator('RSI',timelist,'RSI10',pricelist,timeperiod=10)
+                                         (Inputs)                (Parameters)
+        rsi=getIndicator('RSI',timelist,pricelist,names='RSI10',timeperiod=10)
 
     :return: DataFrame
     '''

@@ -166,25 +166,11 @@ class Account():
 
     def closeOrder(self,price,order):
         '''
-        close an order by position or by ticket
 
-        :param price: necessary
-        :param ticket: close order by orderticket
-        :param pos:
-            close order by the position of order on the orderlist:
-                0: earliest opentime
-                -1: latest opentime
+        :param price:
+        :param order:
         :return:
         '''
-        # if ticket is not None:
-        #     for i in range(0,len(self.orders)):
-        #         if self.orders[i].ticket==ticket:
-        #             self.orders[i].close(price,self.Time)
-        #             self.cash=self.cash+self.orders[i].profit+self.orders[i].deposit
-        #             self.ordersHistory.append(self.orders[i])
-        #             self.orders.pop(i)
-        #             return
-
         order.close(price,self.Time)
         self.cash=self.cash+order.profit+order.deposit
         self.ordersHistory.append(order)
@@ -358,7 +344,7 @@ class System():
                 if self.acc.orders[i].code==k:
                     pass
 
-    def runSelector(self,**kwds):
+    def runSelector(self,start=None,end=None,**kwds):
         '''
 
         :param kwds:
@@ -377,29 +363,26 @@ class System():
         Filter=getattr(self,kwds['Filter'])
         Entry=getattr(self,kwds['Entry'])
         Exit=getattr(self,kwds['Exit'])
+        StopLost=getattr(self,kwds['StopLost'],0)
+        TakeProfit=getattr(self,kwds['TakeProfit'],0)
 
         basicData=self.data[self.code]
-        for i in basicData.index[10:20]:
+        for i in basicData.index[start:end]:
+            price=self.getPrice(self.code,self.default)
             self.time=basicData.get_value(i,'time')
             self._set_Time_Data()
-
-            self.acc.refresh(self.time,self.getPrice(self.code,self.default))
+            self.acc.refresh(self.time,price)
 
             for o in self.acc.orders:
-                self.closeOrder(o.ticket)
+                if Exit()*o.losts>0:
+                    self.acc.closeOrder(price,o)
 
             direct=Filter()
             if direct==0:
                 continue
 
-            if Entry()==direct:
-                self.openOrder(direct)
-
-    def openOrder(self,direct):
-        pass
-
-    def closeOrder(self,ticket):
-        pass
+            if Entry()*direct>0:
+                self.acc.openOrder(self.code,price,abs(Entry())*direct,StopLost(),TakeProfit())
 
     def _set_Time_Data(self):
         self.timeData={}
@@ -436,7 +419,7 @@ class System():
         for pc in paramsComb:
             self.runSimple(**pc)
 
-    def optimalize(self,params=None,funcparam=None,selector=None):
+    def optimalize(self,start=None,end=None,params=None,funcparam=None,selector=None):
         params=self.params if params is None else params
         funcparam=self.funcparam if funcparam is None else funcparam
 
@@ -451,7 +434,7 @@ class System():
         sa=sTree.showAllCombination()
 
         for comb in sa:
-            self.runSelector(**comb)
+            self.runSelector(start,end,**comb)
 
     def init(self):
         pass

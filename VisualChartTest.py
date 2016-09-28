@@ -10,8 +10,8 @@ def GUIStockChart():
     stockChart=ST.StockChart()
 
     data=HKStock.readStockData('HSI','HKindex').dropna()
-    mal=indicator.MA(data['time'],data['closeIndex'])
-    mas=indicator.MA(data['time'],data['closeIndex'],period=20)
+    mal=indicator.getIndicator('MA',data['time'],data.closeIndex)
+    mas=indicator.getIndicator('MA',data['time'],data.closeIndex,timeperiod=20)
     yh=SaveData.readYahooDataFromSql('HK')['HK']
 
     rf=yh.Raise-yh.Fall
@@ -19,9 +19,6 @@ def GUIStockChart():
     T=[]
     for d in yh['index']:
         T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
-
-    yh.insert(0,'time',T)
-    print(yh)
 
     stockChart.importCandle('HSI',df=data[['time','openIndex','highestIndex','lowestIndex','closeIndex']],color='cyan',label=2)
     stockChart.importLine('MA60',df=mal,color='red')
