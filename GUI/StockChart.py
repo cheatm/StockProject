@@ -113,11 +113,8 @@ class StockChart(QtGui.QMainWindow):
         if not self.action:
             return
 
-        shownXray=[]
-        if self.xMove!=0:
-            shownXray=self.xRay[-1-self.xMove-self.xCount:-self.xMove]
-        else:
-            shownXray=self.xRay[-1-self.xMove-self.xCount:]
+        shownXray=self.xRay[-1-self.xMove-self.xCount:-self.xMove] if self.xMove!=0 \
+            else self.xRay[-1-self.xMove-self.xCount:]
 
         self.xList={}
         gap=self.areaWidth/len(list(shownXray))
@@ -164,12 +161,18 @@ class StockChart(QtGui.QMainWindow):
                         Max.append(max(h,l))
                         Min.append(-max(h,l))
 
-
             maxValue=max(Max)
             minValue=min(Min)
             self.Range.append([maxValue+(maxValue-minValue)*0.03,minValue-(maxValue-minValue)*0.03])
-
             num=num+1
+
+        self.makeYlabels()
+
+    def makeYlabels(self):
+        for n in range(0,len(self.yLabel)):
+            r=(self.Range[n][0]-self.Range[n][1])/(1+len(self.yLabel[n][1]))
+            for y in range(0,len(self.yLabel[n][1])):
+                self.yLabel[n][1][y]=self.Range[n][1]+(y+1)*r
 
     def initCharts(self):
         chartsNum=len(self.shown)
@@ -295,11 +298,16 @@ class StockChart(QtGui.QMainWindow):
     def drawYLabel(self,event,qp,i,modify,args,size=10):
         qp.setPen(QtGui.QColor(255,255,255))
         qp.setFont(QtGui.QFont('Ylabel',size))
-        for a in args:
+
+        labels=args[0].copy()
+        labels.extend(args[1])
+
+        for a in labels:
             y=-(a-self.Range[i][1])*modify
             qp.drawLine(QtCore.QPointF( self.areaWidth+self.leftEdge,y),
                         QtCore.QPointF(self.areaWidth+self.leftEdge+5,y))
             qp.drawText(QtCore.QPointF(self.areaWidth+self.leftEdge+5,y+size/2),str(a))
+
 
     def drawXLabel(self,event,qp,size):
         qp.save()
@@ -399,37 +407,14 @@ class StockChart(QtGui.QMainWindow):
 
         while len(self.data)<=n:
             self.data.append({})
-            self.yLabel.append([])
+            self.yLabel.append([[],[]])
 
         if 'hist' not in self.data[n].keys():
             self.data[n]['hist']={}
 
-        if color is None:
-            color=self.colors[0]
-        elif isinstance(color,str):
-            try:
-                color=QtGui.QColor(color)
-            except:
-                color=self.colors[0]
-        elif isinstance(color,int):
-            try:
-                color=self.colors[color]
-            except:
-                color=self.colors[0]
-        elif isinstance(color,list):
-            color=QtGui.QColor(*color[0:3])
-
-        def outXRay(x):
-            return x not in self.xRay
-
-        outxray=list(filter(outXRay,df.time.tolist()))
-        if len(outxray)>0:
-            self.xRay.extend(outxray)
-            self.xRay.sort()
+        color=self._all_Import(color,n,df,label)
 
         self.data[n]['hist'][name]=[df,color]
-        if label is not None:
-            self.yLabel[n].extend(label)
 
     def importLine(self,name,df=None,time=None,line=None,n=0,color=None,label=None):
         if df is None:
@@ -439,37 +424,14 @@ class StockChart(QtGui.QMainWindow):
 
         while len(self.data)<=n:
             self.data.append({})
-            self.yLabel.append([])
+            self.yLabel.append([[],[]])
 
         if 'line' not in self.data[n].keys():
             self.data[n]['line']={}
 
-        if color is None:
-            color=self.colors[0]
-        elif isinstance(color,str):
-            try:
-                color=QtGui.QColor(color)
-            except:
-                color=self.colors[0]
-        elif isinstance(color,int):
-            try:
-                color=self.colors[color]
-            except:
-                color=self.colors[0]
-        elif isinstance(color,list):
-            color=QtGui.QColor(*color[0:3])
-
-        def outXRay(x):
-            return x not in self.xRay
-
-        outxray=list(filter(outXRay,df.time.tolist()))
-        if len(outxray)>0:
-            self.xRay.extend(outxray)
-            self.xRay.sort()
+        color=self._all_Import(color,n,df,label)
 
         self.data[n]['line'][name]=[df,color]
-        if label is not None:
-            self.yLabel[n].extend(label)
 
     def importCandle(self,name,df=None,time=None,open=None,high=None,low=None,close=None,n=0,color=None,label=None):
         if df is None:
@@ -481,11 +443,16 @@ class StockChart(QtGui.QMainWindow):
 
         while len(self.data)<=n:
             self.data.append({})
-            self.yLabel.append([])
+            self.yLabel.append([[],[]])
 
         if 'candle' not in self.data[n].keys():
             self.data[n]['candle']={}
 
+        color=self._all_Import(color,n,df,label)
+
+        self.data[n]['candle'][name]=[df,color]
+
+    def _all_Import(self,color,n,df,label):
         if color is None:
             color=self.colors[0]
         elif isinstance(color,str):
@@ -509,7 +476,11 @@ class StockChart(QtGui.QMainWindow):
             self.xRay.extend(outxray)
             self.xRay.sort()
 
-        self.data[n]['candle'][name]=[df,color]
-        if label is not None:
-            self.yLabel[n].extend(label)
+        if isinstance(label,list):
+            self.yLabel[n][0].extend(label)
+        elif isinstance(label,int):
+            while label>len(self.yLabel[n][1]):
+                self.yLabel[n][1].append(None)
+
+        return color
 
