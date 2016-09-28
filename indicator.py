@@ -128,9 +128,6 @@ def momentum(time,price,period=60):
 
     return pandas.DataFrame(data,columns=['time','momentum%s' % period])
 
-
-
-
 def MACD_Analisys(candle):
 
     print('Analisysing')
@@ -222,8 +219,73 @@ def sentiment(time,price,n=14):
 
     return out
 
+def getIndicator(indicator,time,names=None,*inputs,**params):
 
+    '''
+
+    :param indicator: name of indicator in talib
+    :param time: TimeArray in seconds
+    :param names:
+
+    :param values:
+        datas to caculate,
+        get more in TAlib_indicators.txt
+    :param params:
+        params to be used
+        get more in TAlib_indicators.txt
+
+    How to use:
+        Find 'RSI' in TAlib_indicators.txt:
+            ------------------------------------------------------------------------------------
+            RSI:
+            RSI([input_arrays], [timeperiod=14])
+
+            Relative Strength Index (Momentum Indicators)
+
+            Inputs:
+                price: (any ndarray)
+            Parameters:
+                timeperiod: 14
+            Outputs:
+                real
+            ------------------------------------------------------------------------------------
+
+                                                (Inputs)    (Parameters)
+        rsi=getIndicator('RSI',timelist,'RSI10',pricelist,timeperiod=10)
+
+    :return: DataFrame
+    '''
+
+    arrayValues=[]
+
+    for v in inputs:
+        if isinstance(v,numpy.ndarray):
+            arrayValues.append(v)
+        else:
+            arrayValues.append(numpy.array(v))
+
+    ind=getattr(talib,indicator)(*arrayValues,**params)
+
+    if names is None:
+        names=list(range(0,len(ind))) if isinstance(ind,tuple) else 0
+
+    data={'time':time}
+    if isinstance(ind,tuple):
+        count=0
+        for name in names:
+            data[name]=ind[count]
+            count+=1
+
+        names.insert(0,'time')
+    else:
+        data[names]=ind
+        names=['time',names]
+
+    ind=pandas.DataFrame(data,columns=names).dropna()
+
+    return ind
 
 
 if __name__ == '__main__':
+
     pass

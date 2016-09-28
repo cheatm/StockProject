@@ -13,11 +13,15 @@ def GUIStockChart():
     mal=indicator.MA(data['time'],data['closeIndex'])
     mas=indicator.MA(data['time'],data['closeIndex'],period=20)
     yh=SaveData.readYahooDataFromSql('HK')['HK']
+
     rf=yh.Raise-yh.Fall
     hl=yh.NewHigh-yh.NewLow
     T=[]
     for d in yh['index']:
         T.append(time.mktime(time.strptime(d,'%Y/%m/%d')))
+
+    yh.insert(0,'time',T)
+    print(yh)
 
     stockChart.importCandle('HSI',df=data[['time','openIndex','highestIndex','lowestIndex','closeIndex']],color='cyan',label=2)
     stockChart.importLine('MA60',df=mal,color='red')
@@ -44,6 +48,12 @@ def oandaChart():
 
     data=od.read_sql('D','EUR_USD')
     forexChart.importCandle('EUR_USD',df=data[['time','openBid','highBid','lowBid','closeBid']],label=4)
+
+    macd=indicator.getIndicator('MACD',data.time,['macd','signal','hist'],data.closeBid)
+
+    forexChart.importHist('MACD_hist',df=macd[['time','hist']],n=1,label=[0])
+    forexChart.importLine('MACD_signal',df=macd[['time','signal']],n=1,label=[0],color='red')
+    forexChart.importLine('MACD',df=macd[['time','macd']],n=1,label=[0],color='cyan')
 
     forexChart.show()
 

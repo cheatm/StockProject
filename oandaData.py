@@ -3,6 +3,7 @@ from oandapy import oandapy
 import pandas,time,datetime,math
 import sqlite3,os,threadpool
 import indicator,numpy
+from GUI.StockChart import StockChart
 
 
 folder='ini'
@@ -782,8 +783,6 @@ def importNewInstrument(instrument,*granularity,path=savePath,con=None):
 
 if __name__ == '__main__':
 
-    Insts=readInsts()
-    data=getHistoricalPositionRatios('EUR_USD')
-    print(data)
+    pass
 
 

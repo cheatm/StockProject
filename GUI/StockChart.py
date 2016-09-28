@@ -213,7 +213,7 @@ class StockChart(QtGui.QMainWindow):
             qp.drawLine(QtCore.QPoint(self.posx,0),QtCore.QPoint(self.posx,self.areaHeight))
             qp.drawLine(QtCore.QPoint(0,self.posy),QtCore.QPoint(self.areaWidth,self.posy))
 
-            xstr=time.strftime('%Y/%m/%d',time.gmtime(self.locate[1]))
+            xstr=time.strftime('%Y/%m/%d',time.localtime(self.locate[1]))
 
             qp.setBrush(QtGui.QColor(0,125,125,225))
 
@@ -308,7 +308,6 @@ class StockChart(QtGui.QMainWindow):
                         QtCore.QPointF(self.areaWidth+self.leftEdge+5,y))
             qp.drawText(QtCore.QPointF(self.areaWidth+self.leftEdge+5,y+size/2),str(a))
 
-
     def drawXLabel(self,event,qp,size):
         qp.save()
         qp.translate(0,self.areaHeight+self.highEdge)
@@ -317,7 +316,7 @@ class StockChart(QtGui.QMainWindow):
 
         last=0
         for t in sorted(self.xList.keys()):
-            text=time.strftime('%Y/%m/%d',time.gmtime(t))
+            text=time.strftime('%Y/%m/%d',time.localtime(t))
             x=self.xList[t]
             if x>last:
                 qp.drawLine(x,0,x,-2)

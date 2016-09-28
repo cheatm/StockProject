@@ -1,6 +1,4 @@
-import oandaData
 import pandas
-import time
 import numpy as np
 import talib
 
@@ -100,11 +98,9 @@ class STree():
             combList.extend(self.showBranchesDict(tree))
         return combList
 
-class Account():
+class Order():
 
-    class order():
-
-        def __init__(self,ticket,code,openPrice,lots,lever,time,stoplost=0,takeprofit=0):
+        def __init__(self,ticket,code,openPrice,lots,lever,time,stoplost=0,takeprofit=0,comment=None):
 
             self.code=code
             self.openPrice=openPrice
@@ -114,6 +110,7 @@ class Account():
             self.ticket=ticket
             self.deposit=abs(openPrice*lots/lever)
             self.openTime=time
+            self.comment=comment
 
         def close(self,price,time,cls=None):
             self.closeTime=time
@@ -138,6 +135,8 @@ class Account():
 
             self.closePrice=price
             self.profit=profit
+
+class Account():
 
     orders=[]
     ordersHistory=[]
@@ -165,7 +164,7 @@ class Account():
         self.nextTicket=0
         pass
 
-    def closeOrder(self,price,ticket=None,pos=0):
+    def closeOrder(self,price,order):
         '''
         close an order by position or by ticket
 
@@ -177,21 +176,21 @@ class Account():
                 -1: latest opentime
         :return:
         '''
-        if ticket is not None:
-            for i in range(0,len(self.orders)):
-                if self.orders[i].ticket==ticket:
-                    self.orders[i].close(price,self.Time)
-                    self.cash=self.cash+self.orders[i].profit+self.orders[i].deposit
-                    self.ordersHistory.append(self.orders[i])
-                    self.orders.pop(i)
-                    return
+        # if ticket is not None:
+        #     for i in range(0,len(self.orders)):
+        #         if self.orders[i].ticket==ticket:
+        #             self.orders[i].close(price,self.Time)
+        #             self.cash=self.cash+self.orders[i].profit+self.orders[i].deposit
+        #             self.ordersHistory.append(self.orders[i])
+        #             self.orders.pop(i)
+        #             return
 
-        self.orders[pos].close(price,self.Time)
-        self.cash=self.cash+self.orders[pos].profit+self.orders[pos].deposit
-        self.ordersHistory.append(self.orders[pos])
-        self.orders.pop(pos)
+        order.close(price,self.Time)
+        self.cash=self.cash+order.profit+order.deposit
+        self.ordersHistory.append(order)
+        self.orders.remove(order)
 
-    def openOrder(self,code,price,lots,stoplost=0,takeprofit=0,ticket=None):
+    def openOrder(self,code,price,lots,stoplost=0,takeprofit=0,ticket=None,comment=None):
         '''
         open an order
         :param price:
@@ -204,7 +203,7 @@ class Account():
         if ticket is None:
             ticket=self.nextTicket
 
-        order=self.order(ticket,code,price,lots,self.lever,self.Time,stoplost,takeprofit)
+        order=Order(ticket,code,price,lots,self.lever,self.Time,stoplost,takeprofit,comment)
         self.cash=self.cash-order.deposit
         self.orders.append(order)
 
@@ -251,27 +250,39 @@ class Account():
 
         self.capital.append([time,capital])
 
+    def findOrder(self,value,searchBy='comment',mode='orders'):
+        for o in getattr(self,mode):
+            if getattr(o,searchBy)==value:
+                return o
 
+    def findOrders(self,mode='orders',**how):
+        out=[]
+        for o in getattr(self,mode):
+            isOrder=True
+            for k in how.keys():
+                if getattr(o,k)!=how[k]:
+                    isOrder=False
+                    break
+            if isOrder:
+                out.append(o)
+
+        return out
 
 class System():
 
     data={}
-
     params={}
     funcparam={}
     selectorlist=[]
 
-    def __init__(self,entry=None,exit=None,account=Account()):
+    def __init__(self,default='close',account=Account()):
 
         self.acc=account
         self.setCustomSelector()
         self._set_selector()
         self._set_funcparam()
-
+        self.default=default
         self.init()
-
-    def init(self):
-        pass
 
     def pop__(self,x):
         return '__' not in x
@@ -292,9 +303,6 @@ class System():
                     attr=getattr(self,a)
                     if isinstance(getattr(self,a),type(self.__init__)):
                         sdict[a]=attr
-
-    def setCustomSelector(self):
-        pass
 
     def _set_funcparam(self):
         selfAttrs=list(filter(self.pop__,self.__dir__()))
@@ -321,9 +329,6 @@ class System():
         if maincode:
             self.code=name
         self.data[name]=data
-
-    def makeIndicators(self):
-        pass
 
     def makeIndicator(self,indicator,time,*values,**params):
         value=[]
@@ -378,23 +383,22 @@ class System():
             self.time=basicData.get_value(i,'time')
             self._set_Time_Data()
 
-            print(self.getPrices(self.code,np.arange(0,10),'time','closeBid','closeAsk'))
-            self.refreshAccount(self.time,basicData.loc[i,basicData.columns[1:]])
+            self.acc.refresh(self.time,self.getPrice(self.code,self.default))
 
             for o in self.acc.orders:
-                pass
+                self.closeOrder(o.ticket)
 
             direct=Filter()
             if direct==0:
                 continue
 
             if Entry()==direct:
-                self.entryOrder(direct)
+                self.openOrder(direct)
 
-    def entryOrder(self,direct):
+    def openOrder(self,direct):
         pass
 
-    def exitOrder(self,direct,ticket):
+    def closeOrder(self,ticket):
         pass
 
     def _set_Time_Data(self):
@@ -424,7 +428,13 @@ class System():
             self.acc.refresh(self.time,self.getPrice(self.code,'closeBid')*10000)
             self.simpleStrategy()
 
+    def optimalizeSimple(self,**params):
+        paramsTree=STree('params',**params)
 
+        paramsComb=paramsTree.showAllCombination()
+
+        for pc in paramsComb:
+            self.runSimple(**pc)
 
     def optimalize(self,params=None,funcparam=None,selector=None):
         params=self.params if params is None else params
@@ -443,89 +453,17 @@ class System():
         for comb in sa:
             self.runSelector(**comb)
 
-
-class MySys(System):
-
-    fast=6
-    slow=12
-    signal=9
-    selector = ['Filter','Entry','Exit']
-
-    def makeIndicators(self):
-        basic=self.data[self.code]
-        self.data['macd']=self.makeIndicator('MACD',basic['time'],basic['closeBid'],fastperiod=self.fast)
+    def init(self):
+        pass
 
     def setCustomSelector(self):
-        self.Entry={'macdin':self.macdin}
-        self.Exit={'macdout':self.macdout}
+        pass
 
-    def Entry_1(self):
-        print('fast',self.fast)
-        return 0
-
-    def Entry_2(self):
-        print('2_slow:',self.slow)
-        return  0
-
-    def Exit_1(self):
-        print('exit')
-        return 0
-
-    def Filter1(self):
-        return 0
-
-    macdin_param=['fast','slow','signal']
-    def macdin(self):
-        print('macd_in')
-        return 0
-
-    macdout_param=['fast','slow','signal']
-    def macdout(self):
-        print('macd_out')
-
-        return 0
-
-def def3(cls):
-    start=time.time()
-    t=cls.time
-    ma=cls.getind('MACD','EUR_USD',shift=list(range(0,5)),time=t)
-    print(time.time()-start)
-    if isinstance(ma,int):
-        return 0
-
-    def param():
-        return ['a','b','c']
-
-    return 0
-def3.__setattr__('param',['a','b','c'])
-
-def accountTest():
-    acc=Account()
-    acc.openOrder('EUR_USD',10000,1,9990,10300)
-    acc.openOrder('EUR_USD',10000,-1,10090,9890)
-
-    acc.closeOrder(9990,pos=1)
-
-def systemTest():
-    data=oandaData.read_sql('D','EUR_USD')
-    COT=oandaData.read_sql('COT','EUR_USD')
-
-    system=MySys()
-    system.importData('EUR_USD',data,True)
-    system.importData('COT',COT)
-    system.setParams(fast=[6,7,8,9,10],
-                     slow=[12,14,16],
-                     signal=[9,10,11])
-
-    system.makeIndicators()
-    print(system.data['macd'])
-
-    # system.runSelector(Entry='Entry_1',Filter='Filter1',Exit='macdin')
-
+    def makeIndicators(self):
+        pass
 
 if __name__ == '__main__':
 
-    systemTest()
     pass
 
 

@@ -72,10 +72,10 @@ def updateHKStock():
 
 
 if __name__ == '__main__':
+    hs.updateIndex()
     updateInstrument()
     updateHoldings()
     updateHKStock()
-    # hs.updateIndex()
     errorReUpdate()
 
     pass
