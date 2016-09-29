@@ -100,7 +100,7 @@ class STree():
 
 class Order():
 
-        def __init__(self,ticket,code,openPrice,lots,lever,time,stoplost=0,takeprofit=0,comment=None):
+        def __init__(self,ticket,code,openPrice,lots,deposit,time,stoplost=0,takeprofit=0,comment=None):
 
             self.code=code
             self.openPrice=openPrice
@@ -108,7 +108,7 @@ class Order():
             self.stoplost=stoplost
             self.takeprofit=takeprofit
             self.ticket=ticket
-            self.deposit=abs(openPrice*lots/lever)
+            self.deposit=deposit
             self.openTime=time
             self.comment=comment
 
@@ -189,8 +189,10 @@ class Account():
         if ticket is None:
             ticket=self.nextTicket
 
-        order=Order(ticket,code,price,lots,self.lever,self.Time,stoplost,takeprofit,comment)
-        self.cash=self.cash-order.deposit
+        deposit=abs(lots*price/self.lever)
+
+        order=Order(ticket,code,price,lots,deposit,self.Time,stoplost,takeprofit,comment)
+        self.cash=self.cash-deposit
         self.orders.append(order)
 
         self.nextTicket=ticket+1
@@ -254,6 +256,26 @@ class Account():
 
         return out
 
+    def mergeOrders(self,*args,stoplost=0,takeprofit=0):
+        code = args[0].code
+        lots=0
+        price=0
+        comment=''
+        deposit=0
+        for order in args:
+            if code != order.code:
+                print('Cannot merge orders with different code')
+                return
+            lots=lots+order.lots
+            price=price+order.lots*order.price
+            deposit+=order.deposit
+            comment='%s_%s_' % (comment,order.comment)
+            self.orders.remove(order)
+        newOrder=Order(args[0].ticket,code,price/lots,lots,deposit,self.Time,stoplost,takeprofit,comment)
+        self.orders.append(newOrder)
+
+
+
 class System():
 
     data={}
@@ -261,43 +283,15 @@ class System():
     funcparam={}
     selectorlist=[]
 
-    def __init__(self,default='close',account=Account()):
+    def __init__(self,default='close',lever=1,account=Account()):
 
         self.acc=account
         self.setCustomSelector()
         self._set_selector()
         self._set_funcparam()
         self.default=default
+        self.lever=lever
         self.init()
-
-    def pop__(self,x):
-        return '__' not in x
-
-    def _set_selector(self):
-        if self.selectorlist.__len__()==0:
-            self.selectorlist=['Filter','Entry','Exit']
-
-        selfAttrs=list(filter(self.pop__,self.__dir__()))
-
-        for s in self.selectorlist:
-            if not hasattr(self,s):
-                setattr(self,s,{})
-            sdict=getattr(self,s)
-
-            for a in selfAttrs:
-                if s in a and s != a :
-                    attr=getattr(self,a)
-                    if isinstance(getattr(self,a),type(self.__init__)):
-                        sdict[a]=attr
-
-    def _set_funcparam(self):
-        selfAttrs=list(filter(self.pop__,self.__dir__()))
-
-        for s in self.selectorlist:
-            selector=getattr(self,s)
-            for name in selector.keys():
-                if '%s_param' % name in selfAttrs:
-                    self.funcparam[name]=getattr(self,'%s_param' % name)
 
     def getPrice(self,name,column,shift=0):
         data=self.timeData[name]
@@ -384,15 +378,6 @@ class System():
             if Entry()*direct>0:
                 self.acc.openOrder(self.code,price,abs(Entry())*direct,StopLost(),TakeProfit())
 
-    def _set_Time_Data(self):
-        self.timeData={}
-        for name in self.data.keys():
-            data=self.data[name]
-            if isinstance(data,pandas.DataFrame):
-                data=data[data['time']<=self.time]
-                data.index=reversed(np.arange(0,data.index.size))
-                self.timeData[name]=data
-
     def simpleStrategy(self):
         pass
 
@@ -435,6 +420,44 @@ class System():
 
         for comb in sa:
             self.runSelector(start,end,**comb)
+
+    def _set_funcparam(self):
+        selfAttrs=list(filter(self.pop__,self.__dir__()))
+
+        for s in self.selectorlist:
+            selector=getattr(self,s)
+            for name in selector.keys():
+                if '%s_param' % name in selfAttrs:
+                    self.funcparam[name]=getattr(self,'%s_param' % name)
+
+    def _set_selector(self):
+        if self.selectorlist.__len__()==0:
+            self.selectorlist=['Filter','Entry','Exit']
+
+        selfAttrs=list(filter(self.pop__,self.__dir__()))
+
+        for s in self.selectorlist:
+            if not hasattr(self,s):
+                setattr(self,s,{})
+            sdict=getattr(self,s)
+
+            for a in selfAttrs:
+                if s in a and s != a :
+                    attr=getattr(self,a)
+                    if isinstance(getattr(self,a),type(self.__init__)):
+                        sdict[a]=attr
+
+    def _set_Time_Data(self):
+        self.timeData={}
+        for name in self.data.keys():
+            data=self.data[name]
+            if isinstance(data,pandas.DataFrame):
+                data=data[data['time']<=self.time]
+                data.index=reversed(np.arange(0,data.index.size))
+                self.timeData[name]=data
+
+    def pop__(self,x):
+        return '__' not in x
 
     def init(self):
         pass
