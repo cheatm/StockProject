@@ -12,6 +12,10 @@ def GUIStockChart():
     data=HKStock.readStockData('HSI','HKindex').dropna()
     mal=indicator.getIndicator('MA',data['time'],data.closeIndex)
     mas=indicator.getIndicator('MA',data['time'],data.closeIndex,timeperiod=20)
+
+    data_=data.tail(200)
+    macd=indicator.getIndicator('MACD',data_['time'],data_.closeIndex,names=['macd','signal','hist'])
+
     yh=SaveData.readYahooDataFromSql('HK')['HK']
 
     rf=yh.Raise-yh.Fall
@@ -36,6 +40,7 @@ def GUIStockChart():
     stockChart.importHist('NewHigh-NewLow',time=T,hist=hl.tolist(),n=2,label=[0])
     stockChart.importHist('Raise-Fall',time=T,hist=rf.tolist(),n=3,label=[0])
 
+
     stockChart.show()
     sys.exit(app.exec_())
 
@@ -46,11 +51,11 @@ def oandaChart():
     data=od.read_sql('D','EUR_USD')
     forexChart.importCandle('EUR_USD',df=data[['time','openBid','highBid','lowBid','closeBid']],label=4)
 
-    macd=indicator.getIndicator('MACD',data.time,['macd','signal','hist'],data.closeBid)
+    macd=indicator.getIndicator('MACD',data.time,data.closeBid,names=['macd','signal','hist'])
 
     forexChart.importHist('MACD_hist',df=macd[['time','hist']],n=1,label=[0])
-    forexChart.importLine('MACD_signal',df=macd[['time','signal']],n=1,label=[0],color='red')
-    forexChart.importLine('MACD',df=macd[['time','macd']],n=1,label=[0],color='cyan')
+    forexChart.importLine('MACD_signal',df=macd[['time','signal']],n=1,color='red')
+    forexChart.importLine('MACD',df=macd[['time','macd']],n=1,color='cyan')
 
     forexChart.show()
 
@@ -58,5 +63,5 @@ def oandaChart():
 
 if __name__ == '__main__':
 
-    GUIStockChart()
-    # oandaChart()
+    # GUIStockChart()
+    oandaChart()

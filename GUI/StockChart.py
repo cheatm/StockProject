@@ -153,6 +153,13 @@ class StockChart(QtGui.QMainWindow):
                         Max.append(show['high'].max())
                         Min.append(show['low'].min())
                     elif type=='line':
+                        if 'hist' in n.keys():
+                            value=max(abs(show['value'].max()),abs(show['value'].min()))
+                            Max.append(value)
+                            Min.append(value*abs(show['value'].min())/show['value'].min())
+
+                            continue
+
                         Max.append(show['value'].max())
                         Min.append(show['value'].min())
                     elif type=='hist':
@@ -163,7 +170,7 @@ class StockChart(QtGui.QMainWindow):
 
             maxValue=max(Max)
             minValue=min(Min)
-            self.Range.append([maxValue+(maxValue-minValue)*0.03,minValue-(maxValue-minValue)*0.03])
+            self.Range.append([maxValue+(maxValue-minValue)*0.01,minValue-(maxValue-minValue)*0.01])
             num=num+1
 
         self.makeYlabels()
@@ -307,6 +314,8 @@ class StockChart(QtGui.QMainWindow):
             qp.drawLine(QtCore.QPointF( self.areaWidth+self.leftEdge,y),
                         QtCore.QPointF(self.areaWidth+self.leftEdge+5,y))
             qp.drawText(QtCore.QPointF(self.areaWidth+self.leftEdge+5,y+size/2),str(a))
+
+            print(i,a-self.Range[i][1],y) if i==1 else None
 
     def drawXLabel(self,event,qp,size):
         qp.save()
