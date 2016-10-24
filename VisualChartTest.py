@@ -33,6 +33,8 @@ def GUIStockChart():
 
         data=HKStock.read_sql(i,'HKindex')
         mom=indicator.momentum(data['time'],data['closeIndex'])
+        if isinstance(mom,int):
+            continue
         stockChart.importLine(i,mom,n=1,color=c)
         c+=1
     stockChart.yLabel[1][0]=[100]
@@ -63,5 +65,5 @@ def oandaChart():
 
 if __name__ == '__main__':
 
-    # GUIStockChart()
-    oandaChart()
+    GUIStockChart()
+    # oandaChart()

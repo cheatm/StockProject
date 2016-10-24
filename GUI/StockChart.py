@@ -1,5 +1,6 @@
 from PyQt4 import QtCore,QtGui
 import pandas,sys,time
+import pymongo
 # import threadpool
 
 class StockChart(QtGui.QMainWindow):
@@ -492,3 +493,16 @@ class StockChart(QtGui.QMainWindow):
 
         return color
 
+if __name__ == '__main__':
+    client=pymongo.MongoClient(port=10001)
+
+    app=QtGui.QApplication(sys.argv)
+
+    chart=StockChart()
+    data=client.HK['0700.hk'].find()
+    data=pandas.DataFrame(list(data))
+
+    print(data)
+    chart.importCandle('GBPUSD',df=data[['time','Open','High','Low','Close']])
+    chart.show()
+    sys.exit(app.exec_())

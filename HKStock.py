@@ -352,7 +352,7 @@ if __name__ == '__main__':
 
     # updateAllStock(savePath)
 
-    print(read_sql('HSI','HKindex'))
+    updateIndex()
 
     pass
 

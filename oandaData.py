@@ -4,12 +4,14 @@ import pandas,time,datetime,math
 import sqlite3,os,threadpool
 import indicator,numpy
 from GUI.StockChart import StockChart
+import json
 
 
 folder='ini'
 instruments='Instrument.txt'
 granularity=['M15','H1','H4','D','W','M']
 savePath=open('ini/OandaSavePath.txt').read()
+Clients=json.load(open('ini/OandaClient.json'))
 
 opClient=None
 defautClient=None
@@ -18,19 +20,17 @@ def createOpClient(opClient=opClient):
     if opClient is not None:
         return opClient
 
-    opClient=oandapy.API(environment='live',
-                     access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5")
+
+    opClient=oandapy.API(**Clients['oandapy'])
+
     return opClient
 
 def creatDefaultClient(client=defautClient):
     if client is not None:
         return client
 
-    client= Client(
-            environment=TRADE,
-            account_id="152486",
-            access_token="e94323526b351d296277869d207ccaec-2627af28b94aed9fd0749ab292a923c5"
-        )
+    client=Client(**Clients['pyoanda'])
+
     return client
 
 
@@ -237,7 +237,7 @@ def read_sql(table,code=None,dbpath=None,con=None):
         con=sqlite3.connect(dbpath)
         close=True
 
-    data=pandas.read_sql('''select * from "%s"''' % table,con)
+    data=pandas.read_sql('''select * from %s''' % table,con)
 
     if close:
         con.close()
@@ -782,7 +782,7 @@ def importNewInstrument(instrument,*granularity,path=savePath,con=None):
 
 
 if __name__ == '__main__':
-
+    print(getInstrumentHistory('GBP_USD'))
     pass
 
 
