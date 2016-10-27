@@ -48,7 +48,7 @@ def COTindex(*insts,n=200):
     # print(out.loc[out.index[-10]:])
     return out.loc[out.index[-10]:]
 
-def DirectionDegree(cotPeriod=100,hprPeriod=350):
+def DirectionDegree(*insts,cotPeriod=100,hprPeriod=350):
 
     def risk(values,direction):
         if direction>0:
@@ -67,12 +67,13 @@ def DirectionDegree(cotPeriod=100,hprPeriod=350):
             return 'Safest'
 
 
-    insts=od.readInsts()[0:5]
+
+    insts=od.readInsts()[0:5] if len(insts)==0 else insts
     table=[]
     for i in insts:
         print(i)
         degree=[]
-        degree.append(i)
+        degree.append(i) # Code
 
         column='l-s'
         cur=i.split('_')
@@ -82,19 +83,19 @@ def DirectionDegree(cotPeriod=100,hprPeriod=350):
         hpr=od.read_sql('HPR',i)
         cotnow=cot.get_value(cot.index[-1],column)
         if cotnow>0:
-            degree.append('+')
+            degree.append('+') # COT
         else :
-            degree.append('-')
+            degree.append('-') # COT
 
         position=hpr.get_value(hpr.index[-1],'position')
         if position>0:
-            degree.append('+')
+            degree.append('+') # HPR_position
         else:
-            degree.append('-')
+            degree.append('-') # HPR_position
 
         if degree[1] != degree[2]:
             degree.extend([0,0])
-            table.append(degree)
+            table.append(degree) #
             continue
 
         direct=0
@@ -104,14 +105,11 @@ def DirectionDegree(cotPeriod=100,hprPeriod=350):
             direct=-1
 
         cr=risk(cot[cot.index[-cotPeriod]:][column].tolist(),direct)
-        degree.append('%s%s(%.2f)' % (degree[1],riskStr(cr),cr))
+        degree.append('%s%s(%.2f)' % (degree[1],riskStr(cr),cr)) # COT_Risk
 
         hr=risk(hpr[hpr.index[-hprPeriod]:]['position'].tolist(),direct)
-        degree.append('%s%s(%.2f)' % (degree[1],riskStr(hr),hr))
+        degree.append('%s%s(%.2f)' % (degree[1],riskStr(hr),hr)) # Position_Risk
         table.append(degree)
-
-
-
 
 
     out=pandas.DataFrame(table,columns=['Code','COT','HPR_position','COT_Risk','Position_Risk'])
@@ -119,6 +117,8 @@ def DirectionDegree(cotPeriod=100,hprPeriod=350):
 
 
 if __name__ == '__main__':
+
+    print (DirectionDegree())
 
     pass
 
