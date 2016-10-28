@@ -113,7 +113,8 @@ def getYahooData(proxy=None,html=None):
     dataPattern='''<td align="right">(.*?)</td><td align="right">(.*?)</td>'''
     data=re.findall(dataPattern,tbody,re.S)
     index=['Raise','Fall','Unchange','All','NewHigh','NewLow','VolIncrease','VolDecrease','VolUnchange','VolTotal']
-    out=pandas.DataFrame(data=data,columns=['HK','NASDAQ'],index=index)
+    # out=pandas.DataFrame(data=data,columns=['HK','NASDAQ'],index=index)
+    print(data)
 
     def getNum(value):
         v=0
@@ -126,11 +127,21 @@ def getYahooData(proxy=None,html=None):
                 break
         return v
 
-    for b in out.columns:
-        for a in out.index:
-            out.set_value(a,b,getNum((out.get_value(a,b))))
+    HK,NASDAQ={},{}
+    n=0
+    for hk,nsdq in data:
+        HK[index[n]]=getNum(hk)
+        NASDAQ[index[n]]=getNum(nsdq)
+        n+=1
 
-    return out.T
+    out={'HK':HK,'NASDAQ':NASDAQ}
+    print (out)
+    # for b in out.columns:
+    #     for a in out.index:
+    #         out.set_value(a,b,getNum((out.get_value(a,b))))
+
+    # return out.T
+    return out
 
 def IPAddressSearcher():
     url="http://www.xicidaili.com/nn/1"

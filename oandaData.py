@@ -3,7 +3,6 @@ from oandapy import oandapy
 import pandas,time,datetime,math
 import sqlite3,os,threadpool
 import indicator,numpy
-from GUI.StockChart import StockChart
 import json
 
 

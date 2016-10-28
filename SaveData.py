@@ -1,9 +1,9 @@
-
 import EconomicData
 import pandas
 import time,datetime
 import sqlite3
 import os
+import pymongo
 
 
 DBName='YahooData.db'
@@ -28,7 +28,7 @@ def createPath(path=path):
     os.makedirs(path)
 
 
-def saveYahooData(date=None,conn=None,**market):
+def saveYahooData(date=None,conn=None,mClient=None,**market):
     close=False
     if date==None:
         date=todaystr
@@ -40,11 +40,16 @@ def saveYahooData(date=None,conn=None,**market):
     # read dara from Yahoo
     data=EconomicData.getYahooData()
 
+
     for m in market.keys():
-        mkdata=pandas.DataFrame([data.loc[m]],index=[market[m]])
+        # mkdata=pandas.DataFrame([data.loc[m]],index=[market[m]])
+        mkdata=pandas.DataFrame(data[m],index=[market[m]])
         print(m)
         print(mkdata)
         mkdata.to_sql(m,conn,if_exists='append')
+        if mClient is not None:
+            data[m]['index']=market[m]
+            mClient['YahooData'][m].insert(data[m])
 
     if close:
         conn.close()
@@ -83,9 +88,9 @@ if __name__ == '__main__':
     createPath()
 
     if today.weekday() is not 0:
-        saveYahooData(NASDAQ=yesterdaystr,HK=todaystr)
+        saveYahooData(mClient=pymongo.MongoClient(port=10001),NASDAQ=yesterdaystr,HK=todaystr)
     else:
-        saveYahooData(NASDAQ=lastFridaystr,HK=todaystr)
+        saveYahooData(mClient=pymongo.MongoClient(port=10001),NASDAQ=lastFridaystr,HK=todaystr)
 
     # saveYahooData(NASDAQ=yesterdaystr)
     # saveYahooData(HK=todaystr)
