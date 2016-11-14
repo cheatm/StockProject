@@ -1,6 +1,7 @@
 from PyQt4 import QtCore,QtGui
 import pandas,sys,time
 import pymongo
+from datetime import datetime
 # import threadpool
 
 class StockChart(QtGui.QMainWindow):
@@ -326,7 +327,9 @@ class StockChart(QtGui.QMainWindow):
 
         last=0
         for t in sorted(self.xList.keys()):
-            text=time.strftime('%Y/%m/%d',time.localtime(t))
+            text=datetime.fromtimestamp(t).strftime('%Y-%m-%d') \
+            if not isinstance(t,datetime) else t.strftime('%Y-%m-%d')
+
             x=self.xList[t]
             if x>last:
                 qp.drawLine(x,0,x,-2)
@@ -395,7 +398,10 @@ class StockChart(QtGui.QMainWindow):
             prey=(line.get_value(prex,'value')-self.Range[n][1])*modify
             for x in index[1:]:
                 y=(line.get_value(x,'value')-self.Range[n][1])*modify
-                qp.drawLine(prex,prey,x,y)
+                try:
+                    qp.drawLine(prex,prey,x,y)
+                except:
+                    print(x,line.loc[x])
                 prex=x
                 prey=y
 
@@ -499,10 +505,10 @@ if __name__ == '__main__':
     app=QtGui.QApplication(sys.argv)
 
     chart=StockChart()
-    data=client.HK['0700.hk'].find()
+    data=client.Oanda['WTICO_USD.D'].find()
     data=pandas.DataFrame(list(data))
 
     print(data)
-    chart.importCandle('GBPUSD',df=data[['time','Open','High','Low','Close']])
+    chart.importCandle('GBPUSD',df=data[['time','openBid','highBid','lowBid','closeBid']])
     chart.show()
     sys.exit(app.exec_())
